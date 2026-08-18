@@ -1,0 +1,79 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# ---------------------------------------------------------------------------
+# Agent tooling, research working files, and source dumps.
+#
+# These are the inputs and scratch notes behind the site, not the site itself.
+# They are kept locally on purpose — .research/ holds the raw GitHub API dump
+# and the compiled findings that data/*.ts was written from, and losing them
+# means re-running the research. They just should not be in a public repo.
+#
+# NOTE: git does not track empty directories, and `git rm --cached` is needed
+# for anything already committed — adding a line here does not untrack a file.
+# ---------------------------------------------------------------------------
+
+# Claude Code / agent harness
+.claude/
+CLAUDE.md
+AGENTS.md
+.mcp.json
+.cursor/
+.aider*
+.windsurf/
+
+# research + source dumps that fed data/*.ts
+.research/
+spec.md
+linkdin.md
+linkedin.md
+
+# local-only documentation — working docs, not repo docs.
+# README.md is the only documentation that ships.
+HOW_TO_USE.md
+architecture.md
+tasks.md
+
+# scratch
+*.local
+.scratch/
+tmp/

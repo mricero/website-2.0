@@ -1,0 +1,4 @@
+User-Agent: *
+Allow: /
+
+Sitemap: https://mricero.github.io/website-2.0/sitemap.xml
