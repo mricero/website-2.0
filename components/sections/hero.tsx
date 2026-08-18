@@ -2,7 +2,8 @@ import Link from "next/link"
 import { ArrowDownRightIcon, ArrowUpRightIcon, FileTextIcon } from "lucide-react"
 
 import { focusAreas, siteConfig } from "@/data/site-config"
-import { Button } from "@/components/ui/button"
+import { assetPath, cn } from "@/lib/utils"
+import { buttonVariants } from "@/components/ui/button"
 
 /**
  * The hero deliberately does NOT use <Reveal>. It holds the LCP element, and a
@@ -64,45 +65,38 @@ export function Hero() {
         style={step(5)}
       >
         {/*
-          These three are links wearing button styling — an in-page anchor, a
-          PDF, and an external URL. Base UI's Button assumes `nativeButton` is
-          true, so without this it claims native <button> semantics while
-          actually rendering an <a>, which breaks keyboard and AT behaviour.
+          These are links wearing button styling — an in-page anchor, a PDF, and
+          an external URL — so they render as real anchors via `buttonVariants`
+          rather than through Base UI's <Button>. Routing them through <Button>
+          stamps role="button" onto the element, which overrides the implicit
+          link role: a screen-reader user navigating by links would skip the
+          résumé and GitHub entirely. Styling is identical either way.
         */}
-        <Button size="lg" nativeButton={false} render={<Link href="#projects" />}>
+        <Link
+          href="#projects"
+          className={cn(buttonVariants({ size: "lg" }))}
+        >
           View projects
           <ArrowDownRightIcon data-icon="inline-end" />
-        </Button>
-        <Button
-          size="lg"
-          variant="outline"
-          nativeButton={false}
-          render={
-            <a
-              href={siteConfig.socials.resume}
-              target="_blank"
-              rel="noopener noreferrer"
-            />
-          }
+        </Link>
+        <a
+          href={assetPath(siteConfig.socials.resume)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={cn(buttonVariants({ size: "lg", variant: "outline" }))}
         >
           <FileTextIcon data-icon="inline-start" />
           Resume
-        </Button>
-        <Button
-          size="lg"
-          variant="ghost"
-          nativeButton={false}
-          render={
-            <a
-              href={siteConfig.socials.github}
-              target="_blank"
-              rel="noopener noreferrer"
-            />
-          }
+        </a>
+        <a
+          href={siteConfig.socials.github}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={cn(buttonVariants({ size: "lg", variant: "ghost" }))}
         >
           GitHub
           <ArrowUpRightIcon data-icon="inline-end" />
-        </Button>
+        </a>
       </div>
     </section>
   )

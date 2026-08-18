@@ -4,7 +4,7 @@ import { ArrowUpRightIcon } from "lucide-react"
 import { GitHubIcon } from "@/components/icons"
 
 import type { Project } from "@/types"
-import { cn } from "@/lib/utils"
+import { assetPath, cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 
 /**
@@ -16,7 +16,7 @@ function CardMedia({ project }: { project: Project }) {
   if (project.image) {
     return (
       <Image
-        src={project.image}
+        src={assetPath(project.image)}
         alt={project.imageAlt ?? ""}
         width={1280}
         height={720}

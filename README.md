@@ -39,12 +39,24 @@ Two things are unset and will misbehave until you handle them:
 1. **`public/resume.pdf` does not exist.** The hero's Resume button points at it
    and will 404. Drop the file in `public/`, or delete the button in
    `components/sections/hero.tsx`.
-2. **`siteConfig.url` falls back to a placeholder domain.** It drives
-   `metadataBase`, canonical URLs, OG tags and the sitemap. On Vercel set:
+2. **The deployment URL is baked in for GitHub Pages.** `siteConfig.url` and
+   `basePath` in `next.config.ts` both encode `/website-2.0`, because Pages
+   serves project sites under `/<repo>/`. If you rename the repo, move to a
+   custom domain, or switch to a `mricero.github.io` user site, change **both**.
 
-   ```
-   NEXT_PUBLIC_SITE_URL=https://your-domain.com
-   ```
+## Deploying
+
+```bash
+npm run deploy        # next build -> prepare-pages -> publish out/ to gh-pages
+```
+
+`prepare-pages` writes `out/.nojekyll` and asserts the basePath actually applied
+before anything is published. Both matter: without `.nojekyll`, Pages runs the
+output through Jekyll, which silently drops `_next/` (underscore-prefixed) and
+serves the site unstyled; without the basePath every asset 404s.
+
+Enable it once in **Settings -> Pages -> Source: Deploy from a branch ->
+`gh-pages` / root**.
 
 ## Where things are
 

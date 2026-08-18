@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 
 import { siteConfig } from "@/data/site-config"
+import { assetPath } from "@/lib/utils"
 import { ThemeProvider } from "@/components/layout/theme-provider"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
@@ -40,7 +41,21 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: siteConfig.name, url: siteConfig.socials.github }],
   creator: siteConfig.name,
-  alternates: { canonical: "/" },
+  /**
+   * Absolute, not "/". metadataBase now carries a path (/website-2.0), and a
+   * root-relative "/" resolves against a URL base by replacing the whole path —
+   * so "/" would emit https://mricero.github.io/ and point the canonical at
+   * someone else's site root.
+   */
+  alternates: { canonical: siteConfig.url },
+  /**
+   * Declared explicitly because Next emits the file-convention icon as a bare
+   * "/icon", ignoring basePath — which 404s on a project-site deployment. The
+   * generated file itself lands in the right place; only the link was wrong.
+   */
+  icons: {
+    icon: [{ url: assetPath("/icon"), type: "image/png", sizes: "32x32" }],
+  },
   openGraph: {
     type: "website",
     locale: "en_IN",

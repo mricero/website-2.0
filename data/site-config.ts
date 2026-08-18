@@ -13,11 +13,16 @@ export const siteConfig = {
   location: "Bengaluru, India",
 
   /**
-   * Deployment origin. Used for metadataBase, canonical URLs, OG tags and the
-   * sitemap. Override at build time on Vercel; the fallback is a placeholder
-   * and will produce placeholder canonical URLs if left unset.
+   * Public origin, including the repo path — GitHub Pages serves project sites
+   * under /<repo>/, not at the root. Drives metadataBase, canonical URLs, OG
+   * tags and the sitemap.
+   *
+   * Change this together with `basePath` in next.config.ts if you move to a
+   * custom domain or a <user>.github.io repo.
    */
-  url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://mohnish.dev",
+  url:
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    "https://mricero.github.io/website-2.0",
 
   socials: {
     github: "https://github.com/mricero",

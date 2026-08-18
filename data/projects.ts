@@ -48,7 +48,7 @@ export const projects: Project[] = [
       "Tectonic",
       "CUDA",
     ],
-    image: "/projects/kurt-tutor-chat.png",
+    image: "/projects/kurt-tutor-chat.webp",
     imageAlt:
       "Kurt's tutor chat interface showing a grounded answer with an inline-rendered mathematical equation",
     featured: true,
@@ -93,7 +93,7 @@ export const projects: Project[] = [
       "CUDA",
       "Jupyter",
     ],
-    image: "/projects/vit-baseline-pareto.png",
+    image: "/projects/vit-baseline-pareto.webp",
     imageAlt:
       "Pareto curve plotting Vision Transformer accuracy against inference latency across compression settings",
     imageTreatment: "chart",

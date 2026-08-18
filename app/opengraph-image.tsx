@@ -2,6 +2,12 @@ import { ImageResponse } from "next/og"
 
 import { siteConfig } from "@/data/site-config"
 
+/**
+ * Under `output: export` there is no server to generate this on request, so it
+ * must be rendered once at build time and written out as a file.
+ */
+export const dynamic = "force-static"
+
 export const alt = `${siteConfig.name} — ${siteConfig.title}`
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"

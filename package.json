@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "prepare-pages": "node scripts/prepare-pages.mjs",
+    "deploy": "next build && npm run prepare-pages && gh-pages -d out --dotfiles",
+    "optimize-images": "node scripts/optimize-images.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -28,6 +31,8 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.1",
+    "gh-pages": "^6.3.0",
+    "sharp": "^0.35.3",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

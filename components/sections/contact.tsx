@@ -3,7 +3,8 @@ import { ArrowUpRightIcon, MailIcon } from "lucide-react"
 import { siteConfig } from "@/data/site-config"
 import { Section } from "@/components/layout/section"
 import { Reveal, RevealItem } from "@/components/motion/reveal"
-import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
+import { buttonVariants } from "@/components/ui/button"
 
 const links = [
   { label: "GitHub", href: siteConfig.socials.github },
@@ -24,14 +25,13 @@ export function ContactSection() {
         <RevealItem>
           <div className="mt-8 flex flex-wrap items-center gap-3">
             {/* mailto: — a link, not a button. See the note in hero.tsx. */}
-            <Button
-              size="lg"
-              nativeButton={false}
-              render={<a href={siteConfig.socials.email} />}
+            <a
+              href={siteConfig.socials.email}
+              className={cn(buttonVariants({ size: "lg" }))}
             >
               <MailIcon data-icon="inline-start" />
               {siteConfig.socials.emailAddress}
-            </Button>
+            </a>
           </div>
         </RevealItem>
 
