@@ -1,0 +1,213 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* next-themes writes class="dark" on <html>, so the dark variant keys off that
+   rather than prefers-color-scheme. Without this, the toggle would be inert. */
+@custom-variant dark (&:is(.dark *));
+
+/* ---------------------------------------------------------------------------
+   Palette. spec.md §4 names four colours; shadcn's components need the full
+   token set, so the spec's four are mapped onto shadcn's semantic roles:
+
+     spec "background"  -> --background        deep zinc-black
+     spec "foreground"  -> --foreground        crisp white
+     spec "muted"       -> --muted / --border  subtle gray
+     spec "accent"      -> --primary + --ring  emerald
+
+   Note --primary, not --accent. In shadcn's vocabulary `accent` is the *subtle
+   hover surface* (used by `hover:bg-accent` throughout the primitives), while
+   `primary` is the brand colour for buttons, links and active states. Binding
+   emerald to --accent would turn every hover into a slab of bright green.
+--------------------------------------------------------------------------- */
+
+:root {
+  --background: hsl(0 0% 100%);
+  --foreground: hsl(240 10% 4%);
+
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(240 10% 4%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(240 10% 4%);
+
+  /* emerald, darkened to 28% L — 5.65:1 on white, comfortably past AA */
+  --primary: hsl(150 65% 28%);
+  --primary-foreground: hsl(0 0% 100%);
+
+  --secondary: hsl(240 5% 96%);
+  --secondary-foreground: hsl(240 6% 10%);
+
+  --muted: hsl(240 5% 96%);
+  --muted-foreground: hsl(240 4% 40%);
+
+  --accent: hsl(240 5% 96%);
+  --accent-foreground: hsl(240 6% 10%);
+
+  --destructive: hsl(0 72% 45%);
+  --destructive-foreground: hsl(0 0% 100%);
+
+  --border: hsl(240 6% 90%);
+  --input: hsl(240 6% 90%);
+  --ring: hsl(150 65% 28%);
+
+  --radius: 0.625rem;
+}
+
+.dark {
+  --background: hsl(240 10% 4%);
+  --foreground: hsl(0 0% 98%);
+
+  --card: hsl(240 8% 6%);
+  --card-foreground: hsl(0 0% 98%);
+  --popover: hsl(240 8% 7%);
+  --popover-foreground: hsl(0 0% 98%);
+
+  /* spec's accent, verbatim */
+  --primary: hsl(150 60% 50%);
+  --primary-foreground: hsl(150 90% 6%);
+
+  --secondary: hsl(240 4% 14%);
+  --secondary-foreground: hsl(0 0% 98%);
+
+  --muted: hsl(240 4% 16%);
+  --muted-foreground: hsl(240 5% 65%);
+
+  --accent: hsl(240 4% 16%);
+  --accent-foreground: hsl(0 0% 98%);
+
+  --destructive: hsl(0 70% 58%);
+  --destructive-foreground: hsl(0 0% 98%);
+
+  --border: hsl(240 4% 16%);
+  --input: hsl(240 4% 18%);
+  --ring: hsl(150 60% 50%);
+}
+
+/* @theme inline is what turns a variable into a utility class. Declaring the
+   variables above without this block would leave `bg-background` undefined. */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+    /* the fixed navbar is 4rem tall; without this, anchor jumps land underneath it */
+    scroll-padding-top: 5rem;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+    line-height: 1.625;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1, h2, h3, h4 {
+    letter-spacing: -0.035em;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* base-nova primitives tag their headings with this class */
+  .cn-font-heading {
+    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  ::selection {
+    background-color: color-mix(in oklch, var(--primary) 25%, transparent);
+    color: var(--foreground);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  /* one hairline rule used by the timeline and section dividers */
+  .rule {
+    background-image: linear-gradient(
+      to right,
+      var(--border),
+      color-mix(in oklch, var(--border) 20%, transparent)
+    );
+  }
+
+  /*
+   * Above-the-fold entrance, in CSS rather than Framer.
+   * The hero holds the LCP element. A JS-driven fade leaves the <h1> at
+   * opacity:0 in the served HTML until React hydrates, which pushes LCP out to
+   * hydration time and shows a blank page on a slow connection. A CSS keyframe
+   * starts at first paint instead, needs no JavaScript, and degrades to the
+   * final state under prefers-reduced-motion via the block at the end of this
+   * file (0.01ms duration + `both` fill lands on the `to` frame).
+   */
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .animate-rise {
+    animation: rise 0.5s cubic-bezier(0.21, 0.47, 0.32, 0.98) both;
+  }
+}
+
+/* Anyone who has asked their OS to stop moving things gets a static page.
+   Framer's `useReducedMotion` covers the JS side; this covers CSS transitions
+   and the smooth-scroll above, which Framer does not touch. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
