@@ -66,12 +66,29 @@ AGENTS.md
 spec.md
 linkdin.md
 linkedin.md
+mohnish.txt
+
+# The previous Vite site. Kept locally as the content reference this rebuild
+# was written from — the skills list, the career entries and the school results
+# all came out of it. Not built, not deployed, and not something a public repo
+# should carry a second copy of.
+website/
 
 # local-only documentation — working docs, not repo docs.
 # README.md is the only documentation that ships.
 HOW_TO_USE.md
 architecture.md
 tasks.md
+
+# Source documents dropped in the repo root: CVs, transcripts, anything that
+# was being read from while editing. This repo is public and its contents are
+# downloadable by anyone, so a CV sitting here is a phone number and an address
+# published by accident.
+#
+# The leading slash confines this to the root on purpose. public/resume.pdf is
+# still committable, because that one is published deliberately and is what
+# siteConfig.resumeAvailable turns on.
+/*.pdf
 
 # scratch
 *.local

@@ -1,10 +1,32 @@
-import type { Project } from "@/types"
+import type { Project, ProjectCategory } from "@/types"
 
 /**
- * Content source: .research/FINDINGS.md
- * Every claim here traces to a repository README. No repo on this account has a
- * GitHub description, topic, or homepage set, so all copy is written from the
- * README bodies rather than lifted from API metadata.
+ * Content sources:
+ *  - .research/FINDINGS.md, compiled from the repository READMEs themselves. No
+ *    repo on this account has a GitHub description, topic or homepage set, so
+ *    every line here is written from a README body rather than lifted from API
+ *    metadata.
+ *  - The CV PDF in the repository root, which supplies the date ranges, the
+ *    ownership role on each project, and the ViT VRAM figures.
+ *
+ * Rule for this file: no invented numbers. The hard figures below (210 tests,
+ * 10-20x realtime, a 5 m resample grid, 24 sweep combinations, a 1,007-token
+ * vocabulary, 401 MB down to 312 MB) each appear verbatim in a README or in
+ * the CV.
+ *
+ * One known conflict, left as the README has it: the CV's prose describes the
+ * handwriting model as using a ResNet-50 encoder, while the README, the CV's
+ * own skills list, and the architecture numbers (a 16x16x512 feature map, which
+ * is ResNet-18's output shape and not ResNet-50's 2048 channels) all say
+ * ResNet-18. The three agreeing sources win.
+ *
+ * House style, from .agents/skills: no em-dashes or en-dashes in any string
+ * that reaches the page. Ranges use a hyphen.
+ *
+ * Adding a project: append an entry. The listing page, the category filter, the
+ * home-page preview, `generateStaticParams` for /projects/<id> and the sitemap
+ * all derive from this array. A project without `detail` still gets a page; it
+ * just renders the summary half.
  */
 export const projects: Project[] = [
   {
@@ -12,10 +34,12 @@ export const projects: Project[] = [
     title: "Multi-Tenant Legal RAG Assistant",
     category: "Systems",
     period: "2026",
+    role: "Project lead",
+    date: "2026-08-18",
     shortDescription:
-      "A legal-document retrieval system with two ingestion engines, hybrid search, and per-session document isolation — a FastAPI backend behind a Cloudflare tunnel serving a static React SPA.",
+      "A legal-document retrieval system with two ingestion engines, hybrid search and per-session document isolation: a FastAPI backend behind a Cloudflare tunnel serving a static React SPA.",
     highlight:
-      "Retrieval fuses BM25 and dense-vector *ranks*, not scores: a cosine distance and a BM25 score share no scale, so any normalisation between them ends up tuned to one corpus and wrong on the next. The lexical leg exists because an embedding blurs exactly the rare token — \"Section 302\" — that made the question specific.",
+      "Retrieval fuses BM25 and dense-vector *ranks*, not scores. A cosine distance and a BM25 score share no scale, so any normalisation between them ends up tuned to one corpus and wrong on the next. The lexical leg exists because an embedding blurs exactly the rare token, “Section 302”, that made the question specific.",
     techStack: [
       "FastAPI",
       "Celery",
@@ -28,16 +52,99 @@ export const projects: Project[] = [
     ],
     featured: true,
     links: { github: "https://github.com/mricero/legal-assistant" },
+    detail: {
+      overview: [
+        "Legal questions are unusually hostile to pure vector search. The thing that makes a question specific is almost always a rare identifier: a section number, a case citation, a statute short-name. That is precisely the token an embedding model averages away. Ask about “Section 302” and a dense retriever will happily hand back everything about criminal procedure in general.",
+        "So this system runs two retrievers and fuses them. BM25 catches the literal identifier; dense vectors catch the paraphrase. The interesting decision is how they are combined: by rank, using reciprocal rank fusion, rather than by score. A cosine distance and a BM25 score share no scale and no distribution, so any normalisation you pick between them is really a hyperparameter fitted to one corpus, and silently wrong on the next one.",
+        "Around that sits the part nobody demos: two incompatible document parsers running as isolated subprocesses, a Celery queue that has to respect an 8 GB VRAM ceiling, and a tenancy model that fails closed on both the write and the read path.",
+      ],
+      metrics: [
+        { value: "210", label: "Unit tests, no external deps" },
+        { value: "~6 s", label: "Full unit suite runtime" },
+        { value: "3", label: "Isolated Python environments" },
+        { value: "8 GB", label: "VRAM ceiling designed against" },
+      ],
+      keyFeatures: [
+        "Hybrid retrieval: BM25 lexical search and dense vector search fused with reciprocal rank fusion.",
+        "Two selectable ingestion engines. marker-pdf for layout-faithful extraction, Unlimited-OCR for scanned and handwritten documents.",
+        "Per-session tenancy: a UUID4 acts as a capability token, enforced independently on the embedder and the query router.",
+        "Practice-area tagging combining metadata filtering, gentle centroid steering, and a widened top-k to compensate.",
+        "Background ingestion through Celery with live job state persisted to SQLite in WAL mode.",
+        "Static React SPA on GitHub Pages talking to a self-hosted backend through a Cloudflare tunnel, with no cloud bill.",
+      ],
+      technical: [
+        "Reciprocal rank fusion over ranks rather than scores, so the two retrievers never need a shared scale.",
+        "Three-virtualenv architecture: marker-pdf and Unlimited-OCR pin irreconcilable transformers and pillow versions, so both run as subprocesses and the application environment stays entirely torch-free.",
+        "Contextual chunk embedding: each chunk is vectorised as previous-tail plus chunk plus next-head (±220 characters) while the stored and cited text remains the chunk itself. The vector sees the neighbourhood; the citation stays exact.",
+        "VRAM budgeting for a 3.3B-parameter bf16 OCR model plus SAM-ViT-B and CLIP-L: max length 32768 down to 8192, image size 1024 down to 640, page batch 4, Celery on a solo pool.",
+        "Fail-closed tenancy: the embedder refuses unscoped writes and the router raises on an unfiltered query, so a missing session id is an error rather than a data leak.",
+        "210 unit tests running with no external dependencies, plus a live smoke test asserting twenty properties against a real Chroma server.",
+      ],
+      architecture: `React SPA (GitHub Pages)
+      │  HTTPS
+      ▼
+Cloudflare Tunnel
+      │
+      ▼
+   FastAPI ──────────► SQLite (WAL)      document + job state
+      │
+      ├──────────────► ChromaDB :8001    3 collections
+      │
+      └──► Redis :6379 ──► Celery (solo pool)
+                                │
+                                ├─► subprocess: marker-pdf    (.venv-marker)
+                                └─► subprocess: Unlimited-OCR (.venv-ocr)`,
+      architectureCaption:
+        "The two parsers sit behind a subprocess boundary because their dependency pins cannot coexist in one interpreter.",
+      challenges: [
+        {
+          challenge:
+            "Dense retrieval loses the rare identifier that makes a legal question specific.",
+          solution:
+            "Run BM25 alongside it and fuse by rank, so the lexical leg can rescue a query the embedder blurred.",
+        },
+        {
+          challenge:
+            "The two best document parsers pin mutually incompatible versions of transformers and pillow.",
+          solution:
+            "Give each its own virtualenv and invoke it as a subprocess; the app environment never imports torch at all.",
+        },
+        {
+          challenge: "Upstream OCR defaults OOM immediately on an 8 GB consumer card.",
+          solution:
+            "Cut max sequence length and image resolution, batch pages in fours, and pin Celery to a solo pool, documented as a real coherence tradeoff rather than hidden.",
+        },
+        {
+          challenge:
+            "Multi-tenant document isolation is the kind of thing that fails silently and catastrophically.",
+          solution:
+            "Enforce the session scope on both sides of the store, and make the absence of a scope raise rather than default.",
+        },
+      ],
+      stack: [
+        { group: "API", items: ["FastAPI", "Pydantic", "Uvicorn"] },
+        { group: "Retrieval", items: ["ChromaDB", "BM25", "Reciprocal Rank Fusion"] },
+        {
+          group: "Ingestion",
+          items: ["marker-pdf", "Unlimited-OCR", "SAM-ViT-B", "CLIP-L"],
+        },
+        { group: "Queue & state", items: ["Celery", "Redis", "SQLite (WAL)"] },
+        { group: "Front end", items: ["React", "Vite"] },
+        { group: "Infra", items: ["Cloudflare Tunnel", "PyTorch CUDA 12.8", "pytest"] },
+      ],
+    },
   },
   {
     id: "kurt",
-    title: "Kurt — Offline-First AI Tutor",
+    title: "Kurt, an Offline-First AI Tutor",
     category: "AI/ML",
-    period: "2026",
+    period: "May 2026 to Jul 2026",
+    role: "Project lead",
+    date: "2026-07-15",
     shortDescription:
-      "A fully local desktop assistant that transcribes lectures, answers questions grounded in your own documents, and compiles the result into typeset PDFs — no network required.",
+      "A fully local desktop assistant that transcribes lectures, answers questions grounded in your own documents, and compiles the result into typeset PDFs. No network required.",
     highlight:
-      "Tkinter has no MathJax, so multi-line equations are intercepted from the model's output and rendered through matplotlib's typesetting engine into transparent PNGs embedded inline — real maths in a desktop chat window, entirely offline.",
+      "Tkinter has no MathJax, so multi-line equations are intercepted from the model's output and rendered through matplotlib's typesetting engine into transparent PNGs embedded inline: real mathematics in a desktop chat window, entirely offline.",
     techStack: [
       "Python",
       "faster-whisper",
@@ -53,14 +160,116 @@ export const projects: Project[] = [
       "Kurt's tutor chat interface showing a grounded answer with an inline-rendered mathematical equation",
     featured: true,
     links: { github: "https://github.com/mricero/meeting-summary" },
+    detail: {
+      overview: [
+        "Kurt started as a lecture summariser and turned into a study environment. It records or ingests audio, transcribes it locally, files the result into a per-course knowledge base, and then answers questions against that base, all on the machine in front of you, with no API key and no upload.",
+        "The constraint that shaped everything was that it had to work offline. That rules out hosted transcription, hosted embeddings, hosted inference, and least obviously, hosted mathematics rendering. A tutor for a mathematics student that cannot draw an integral sign is not a tutor.",
+        "Tkinter has no MathJax and no HTML math support. The fix was to treat matplotlib's mathtext engine as a typesetter: intercept LaTeX blocks in the model's streamed output, render each to a transparent PNG, and embed it inline in the chat transcript. It is a slightly absurd solution that works completely.",
+      ],
+      metrics: [
+        { value: "10-20x", label: "Faster than realtime transcription" },
+        { value: "5", label: "Top-k chunks injected as context" },
+        { value: "~1000", label: "Characters per overlapping chunk" },
+        { value: "5", label: "Swappable LLM providers" },
+      ],
+      keyFeatures: [
+        "Local speech-to-text with voice activity detection, so silence never reaches the model.",
+        "Per-course RAG knowledge bases with document ingestion, chunking and local vector storage.",
+        "Inline mathematical rendering in a Tkinter chat window: genuinely offline LaTeX display.",
+        "Summaries compiled to LaTeX and typeset to PDF without a multi-gigabyte TeX installation.",
+        "Provider hot-swap between Ollama, OpenRouter, Anthropic, OpenAI and Gemini, with the settings UI reconfiguring per provider.",
+        "Theme and UI-scaling controls, because a study tool gets used for hours at a time.",
+      ],
+      technical: [
+        "faster-whisper, a CTranslate2 reimplementation of Whisper, CUDA-accelerated to 10-20x realtime with VAD skipping silent spans.",
+        "PyMuPDF and LangChain extraction into roughly 1000-character overlapping semantic chunks, embedded with sentence-transformers/all-MiniLM-L6-v2.",
+        "ChromaDB stored on disk and partitioned per course; retrieval pulls the top five chunks as contextual ground truth injected into the system prompt.",
+        "LaTeX interception on $$ and \\[ delimiters, rendered through matplotlib's mathtext engine to transparent PNGs, with tkhtmlview handling Markdown and HTML for the surrounding prose.",
+        "Tectonic rather than TeXLive for PDF compilation. It fetches only the packages a document actually uses instead of installing several gigabytes up front.",
+      ],
+      challenges: [
+        {
+          challenge: "Tkinter cannot render mathematics.",
+          solution:
+            "Use matplotlib as a typesetting engine and embed the output as transparent inline images.",
+        },
+        {
+          challenge: "A full TeX distribution is a multi-gigabyte dependency.",
+          solution:
+            "Compile with Tectonic, which resolves packages on demand and keeps the install small.",
+        },
+        {
+          challenge:
+            "Whole-lecture audio contains long silent stretches that waste GPU time.",
+          solution: "Gate transcription behind voice activity detection.",
+        },
+        {
+          challenge:
+            "Different providers expect different credentials, endpoints and parameters.",
+          solution:
+            "Drive the settings UI from a provider descriptor so the fields reconfigure themselves rather than being conditionally hidden.",
+        },
+      ],
+      stack: [
+        { group: "Speech", items: ["faster-whisper", "CTranslate2", "VAD"] },
+        {
+          group: "Retrieval",
+          items: ["ChromaDB", "LangChain", "all-MiniLM-L6-v2", "PyMuPDF"],
+        },
+        {
+          group: "Inference",
+          items: ["Ollama", "OpenRouter", "Anthropic", "OpenAI", "Gemini"],
+        },
+        {
+          group: "Interface",
+          items: ["customtkinter", "tkhtmlview", "matplotlib mathtext"],
+        },
+        { group: "Output", items: ["LaTeX", "Tectonic"] },
+      ],
+      gallery: [
+        {
+          src: "/projects/kurt-tutor-chat.webp",
+          alt: "Kurt's tutor chat with a grounded answer and an inline-rendered equation",
+          caption:
+            "Tutor chat. Answers grounded in the course knowledge base, with inline mathematics.",
+        },
+        {
+          src: "/projects/kurt-audio-summary.webp",
+          alt: "Kurt's audio transcription and summary view",
+          caption: "Transcription and summary of a recorded lecture.",
+        },
+        {
+          src: "/projects/kurt-rag-ingestion.webp",
+          alt: "Kurt's document ingestion pipeline interface",
+          caption: "RAG ingestion. Documents chunked, embedded and filed locally.",
+        },
+        {
+          src: "/projects/kurt-course-data.webp",
+          alt: "Kurt's per-course knowledge base management screen",
+          caption: "Per-course knowledge bases, each its own vector collection.",
+        },
+        {
+          src: "/projects/kurt-llm-settings.webp",
+          alt: "Kurt's LLM provider and API key settings screen",
+          caption: "Provider hot-swap. The form reconfigures itself per backend.",
+        },
+        {
+          src: "/projects/kurt-customisation.webp",
+          alt: "Kurt's theme and UI scaling options",
+          caption: "Theme and scaling controls for long study sessions.",
+        },
+      ],
+    },
   },
   {
     id: "f1-telemetry",
     title: "F1 Telemetry Dashboard",
     category: "Web",
-    period: "2026",
+    period: "Jun 2026 to Jul 2026",
+    role: "Project lead",
+    date: "2026-07-14",
     shortDescription:
-      "Live and historical Formula 1 telemetry — speed, throttle, brake, RPM, gear, DRS, tyre strategy and a GPS track map — streaming from F1's official timing feed with no paid tier.",
+      "Live and historical Formula 1 telemetry: speed, throttle, brake, RPM, gear, DRS, tyre strategy and a GPS track map, streaming from F1's official timing feed with no paid tier.",
     highlight:
       "Drivers cross the line at different moments, so speed-against-time never lines up. Telemetry is interpolated onto a uniform five-metre distance grid, which is what makes two drivers genuinely comparable at the same braking point.",
     techStack: [
@@ -74,16 +283,76 @@ export const projects: Project[] = [
     ],
     featured: true,
     links: { github: "https://github.com/mricero/F1-Telemetry-Dashboard" },
+    detail: {
+      overview: [
+        "Comparing two Formula 1 laps sounds like a plotting exercise and is not. Plot speed against time for two drivers and the traces drift apart immediately, because they crossed the start line at different moments and carried different speeds through it. By the second corner you are comparing two different parts of the circuit to each other.",
+        "The fix is to change the x-axis. Both drivers' telemetry is interpolated onto a shared uniform five-metre distance grid, so index 400 means “two kilometres into the lap” for both of them. Only then does a braking-point comparison mean anything.",
+        "The other half of the project is getting the data at all. F1's live timing feed is a SignalR endpoint that broadcasts base64 and zlib payloads, and it only transmits on race weekends, roughly ten percent of the year. So the app probes the endpoint and, finding nothing live, degrades to the most recent completed Grand Prix rather than showing an empty screen.",
+      ],
+      metrics: [
+        { value: "5 m", label: "Uniform resample grid" },
+        { value: "4", label: "Live SignalR topics consumed" },
+        { value: "3", label: "Medallion ETL layers" },
+        { value: "Free", label: "Cost of the live data tier" },
+      ],
+      keyFeatures: [
+        "Direct connection to F1's official live timing SignalR endpoint, with no paid data subscription.",
+        "Distance-resampled telemetry so two drivers can be compared at the same point on track.",
+        "Channel charts for speed, throttle, brake, RPM, gear and DRS.",
+        "Lap-time progression with pit-stop indicators and tyre-strategy stacked bars.",
+        "GPS track map reconstructed from raw X/Y positional telemetry.",
+        "Graceful fallback to the most recent completed Grand Prix when no session is live.",
+        "Session record and replay: live streams saved to JSON and Parquet, then played back as simulated realtime for offline development.",
+      ],
+      technical: [
+        "FastF1's SignalRClient plus the LiveF1 package against wss://livetiming.formula1.com/signalrcore, subscribing to CarData.z, Position.z, TimingData and SessionInfo.",
+        "Payloads arrive base64-encoded and zlib-compressed; they are decoded and normalised into DataFrames on arrival.",
+        "numpy.interp onto a uniform five-metre grid, which is the single transformation that makes cross-driver comparison valid.",
+        "Medallion ETL: bronze holds the raw zlib JSON, silver the decoded per-topic frames, gold the resampled driver-merged output the charts read.",
+        "Layered module structure. Data adapters (FastF1, live, Jolpica) feed a telemetry processor which feeds the Streamlit UI, so a new source is an adapter rather than a rewrite.",
+      ],
+      challenges: [
+        {
+          challenge: "Speed-against-time does not align between two drivers.",
+          solution:
+            "Resample every channel onto a shared five-metre distance grid before plotting anything.",
+        },
+        {
+          challenge:
+            "Live timing only broadcasts on race weekends, which leaves most of the year with no data.",
+          solution:
+            "Probe the endpoint on load and fall back to the last completed Grand Prix, so the dashboard is never blank.",
+        },
+        {
+          challenge:
+            "Developing against a live feed that exists a few weekends a year is impossible.",
+          solution:
+            "Record live sessions to Parquet and replay them as simulated realtime streams.",
+        },
+        {
+          challenge: "Commercial live telemetry APIs charge for the real-time tier.",
+          solution:
+            "Go to F1's own SignalR endpoint directly and decode the compressed payloads.",
+        },
+      ],
+      stack: [
+        { group: "Ingest", items: ["FastF1", "LiveF1", "SignalR", "Jolpica"] },
+        { group: "Processing", items: ["pandas", "NumPy", "PyArrow"] },
+        { group: "Interface", items: ["Streamlit", "Plotly"] },
+      ],
+    },
   },
   {
     id: "vit-compression",
     title: "ViT Compression Trade-offs",
     category: "Research",
-    period: "2026",
+    period: "Mar 2026 to Apr 2026",
+    role: "Project co-lead",
+    date: "2026-04-29",
     shortDescription:
-      "A study of four Vision Transformer compression paradigms — token merging, threshold masking, post-training quantisation, and entropy-based head pruning — mapped across a 24-combination sweep of the Pareto frontier.",
+      "Four Vision Transformer compression paradigms (token merging, threshold masking, post-training quantisation and entropy-based head pruning) mapped across a 24-combination sweep of the Pareto frontier.",
     highlight:
-      "Deleting tokens outright breaks the 2D spatial grid that hybrid convolutional models need, so token importance is proxied by L2 norm and low-importance embeddings are zeroed instead — the tensor keeps its shape and the downstream convolutions still work.",
+      "Deleting tokens outright breaks the 2D spatial grid that hybrid convolutional models need, so token importance is proxied by L2 norm and low-importance embeddings are zeroed instead. The tensor keeps its shape and the downstream convolutions still work.",
     techStack: [
       "PyTorch",
       "ToMe",
@@ -99,16 +368,133 @@ export const projects: Project[] = [
     imageTreatment: "chart",
     featured: true,
     links: { github: "https://github.com/mricero/aiml_project_dir2" },
+    detail: {
+      overview: [
+        "Self-attention costs O(N²d) in sequence length, which is why a Vision Transformer that is comfortable on a datacentre GPU is not comfortable on a laptop. There are four well-known ways to make it cheaper, and the literature reports each of them in isolation. The question this study asks is what happens when you combine them.",
+        "The answer is a 24-combination interaction sweep across token merging, threshold masking, quantisation and head pruning, benchmarked on ViT-Small, EfficientFormer and EfficientViT against a 50k ImageNet-1K validation subset, and plotted as a Pareto frontier of accuracy against latency.",
+        "The headline result is a stack rather than a single technique. INT4 quantisation combined with token merging at r=8 cut peak VRAM from roughly 401 MB to 312 MB while holding Top-1 accuracy above 70 percent, zero-shot, with no fine-tuning to recover the loss.",
+        "The most instructive finding is a negative one. Token merging assumes tokens are an unordered set, but hybrid convolutional-transformer models reconstruct a 2D grid between stages, and physically removing tokens destroys it. That constraint is what produced the custom masking method below.",
+      ],
+      metrics: [
+        { value: "24", label: "Sweep combinations" },
+        { value: "401 to 312 MB", label: "Peak VRAM, best stack" },
+        { value: ">70%", label: "Top-1 accuracy preserved" },
+        { value: "3", label: "Backbones benchmarked" },
+      ],
+      keyFeatures: [
+        "Token Merging (ToMe) via bipartite matching on key-cosine similarity, with proportional attention rescaling so merged tokens are not diluted.",
+        "A custom L2 threshold-masking method that preserves tensor shape, written specifically for hybrid conv-transformer backbones.",
+        "Post-training quantisation to INT8 by AbsMax and INT4 by NF4, through bitsandbytes.",
+        "Zero-shot structural head pruning ranked by the Shannon entropy of each head's attention distribution.",
+        "A 24-combination master interaction sweep mapping the accuracy against latency Pareto frontier.",
+        "An identified optimal zero-shot stack, INT4 with ToMe at r=8, holding above 70 percent Top-1 on ImageNet.",
+        "Result plots for every axis, checked into the repository as evidence rather than described in prose.",
+      ],
+      technical: [
+        "Token similarity S_ij = (k_i·k_j)/(‖k_i‖‖k_j‖) drives bipartite matching; attention is rescaled as softmax(QKᵀ/√d_k + log s) so a merged token carries the weight of the tokens it absorbed.",
+        "Custom masking proxies importance by I_i = ‖x_i‖₂ and zeroes sub-threshold embeddings in place, preserving the (B, N, C) shape that downstream convolutions require.",
+        "INT8 quantisation by AbsMax with scale S = 127/max|W|; INT4 by NF4, whose 16 levels are the quantiles of a standard normal. That is the right prior, because trained weights are approximately Gaussian.",
+        "Head pruning ranks heads by H = −Σ A log(A+ε): a high-entropy head attends to everything and therefore selects nothing, so its W_Q, W_K, W_V and projection slices are physically removed.",
+        "Peak VRAM measured at roughly 401 MB uncompressed against 312 MB for the INT4 plus ToMe r=8 stack, with Top-1 held above 70 percent and no fine-tuning applied.",
+        "Benchmarked end to end on an RTX 5070 Ti Mobile, so the latency numbers describe consumer-edge hardware rather than a datacentre.",
+      ],
+      challenges: [
+        {
+          challenge:
+            "Token merging breaks hybrid models that rebuild a 2D spatial grid between stages.",
+          solution:
+            "Mask rather than delete. Zero the low-L2 embeddings and keep the tensor shape intact.",
+        },
+        {
+          challenge:
+            "Uniform INT4 quantisation wastes levels on a Gaussian weight distribution.",
+          solution:
+            "Use NF4, whose levels sit at the quantiles of N(0,1), so resolution goes where the mass is.",
+        },
+        {
+          challenge:
+            "Which attention heads are safe to remove is not obvious from the weights alone.",
+          solution:
+            "Score heads by attention entropy and prune the flattest. An unfocused head is one that is not making a decision.",
+        },
+        {
+          challenge: "Reporting each technique alone hides how they interact when stacked.",
+          solution:
+            "Run the full 24-combination sweep and publish the frontier instead of four separate best cases.",
+        },
+      ],
+      stack: [
+        { group: "Compression", items: ["ToMe", "bitsandbytes", "NF4", "INT8"] },
+        {
+          group: "Models",
+          items: ["ViT-Small", "EfficientFormer", "EfficientViT", "timm"],
+        },
+        { group: "Runtime", items: ["PyTorch nightly", "CUDA 12.8"] },
+        { group: "Analysis", items: ["matplotlib", "Jupyter", "ImageNet-1K"] },
+      ],
+      gallery: [
+        {
+          src: "/projects/vit-master-sweep.webp",
+          alt: "Master interaction sweep across 24 compression configurations",
+          caption: "The master sweep. All 24 combinations, accuracy against latency.",
+          treatment: "chart",
+        },
+        {
+          src: "/projects/vit-interaction-sweep.webp",
+          alt: "Labelled interaction sweep chart identifying each compression configuration",
+          caption: "The same sweep, labelled, so each point traces back to its config.",
+          treatment: "chart",
+        },
+        {
+          src: "/projects/vit-baseline-pareto.webp",
+          alt: "Baseline Pareto curve of accuracy against latency",
+          caption: "Baseline Pareto frontier before any compression is applied.",
+          treatment: "chart",
+        },
+        {
+          src: "/projects/vit-tome-pareto.webp",
+          alt: "Pareto curve for token merging across merge ratios",
+          caption: "Token merging across merge ratios.",
+          treatment: "chart",
+        },
+        {
+          src: "/projects/vit-quantization.webp",
+          alt: "Quantisation metrics comparing INT8 and NF4",
+          caption: "Post-training quantisation. INT8 AbsMax against NF4.",
+          treatment: "chart",
+        },
+        {
+          src: "/projects/vit-entropy-pruning.webp",
+          alt: "Bar chart of accuracy and latency under entropy-based head pruning",
+          caption: "Entropy-ranked head pruning, by number of heads removed.",
+          treatment: "chart",
+        },
+        {
+          src: "/projects/vit-custom-masking.webp",
+          alt: "Metrics for the custom L2 threshold masking method",
+          caption: "Custom L2 threshold masking, the shape-preserving alternative.",
+          treatment: "chart",
+        },
+        {
+          src: "/projects/vit-small-baseline.webp",
+          alt: "ViT-Small uncompressed baseline metrics",
+          caption: "ViT-Small uncompressed, as the reference point.",
+          treatment: "chart",
+        },
+      ],
+    },
   },
   {
     id: "image-to-latex",
     title: "Image-to-LaTeX Handwriting OCR",
     category: "AI/ML",
-    period: "2026",
+    period: "Jan 2026 to Jun 2026",
+    role: "Project lead",
+    date: "2026-07-10",
     shortDescription:
-      "A 2D-attention encoder-decoder that reads handwritten text and mathematical expressions and emits LaTeX autoregressively — ResNet-18 features into a four-layer Transformer decoder over a 1,007-token vocabulary.",
+      "A 2D-attention encoder-decoder that reads handwritten text and mathematical expressions and emits LaTeX autoregressively: ResNet-18 features into a four-layer Transformer decoder over a 1,007-token vocabulary.",
     highlight:
-      "A flattened feature map loses the two-dimensional layout that makes a fraction a fraction, so the encoder carries separate sinusoidal encodings for the X and Y axes — the decoder can tell what sits above the bar from what sits below it.",
+      "A flattened feature map loses the two-dimensional layout that makes a fraction a fraction, so the encoder carries separate sinusoidal encodings for the X and Y axes. The decoder can tell what sits above the bar from what sits below it.",
     techStack: [
       "PyTorch",
       "ResNet-18",
@@ -119,6 +505,79 @@ export const projects: Project[] = [
     ],
     featured: true,
     links: { github: "https://github.com/mricero/ocr-2.0" },
+    detail: {
+      overview: [
+        "Reading handwritten mathematics is not a text recognition problem with harder glyphs. The meaning of an expression lives in its two-dimensional layout: a numerator is a numerator because of where it sits relative to a bar, and a superscript is a superscript because of where it sits relative to a baseline.",
+        "Standard image-to-sequence models flatten the encoder's spatial feature map into a 1D sequence before the decoder sees it, which throws that layout away and asks attention to reconstruct it from scratch. This model instead carries separate sinusoidal positional encodings for the X and Y axes, so every feature vector arrives at the decoder still knowing where on the page it came from.",
+        "The rest of the work was fitting the thing on an 8 GB card: mixed precision, gradient accumulation, Flash Attention through PyTorch's fused kernel, and optional encoder checkpointing, documented with a real VRAM-versus-throughput table rather than a claim.",
+      ],
+      metrics: [
+        { value: "1,007", label: "Token vocabulary" },
+        { value: "4 x 8", label: "Decoder layers by heads" },
+        { value: "~6 GB", label: "VRAM at batch 4" },
+        { value: "2.8 it/s", label: "Measured training throughput" },
+      ],
+      keyFeatures: [
+        "ResNet-18 encoder producing a 16x16x512 spatial map, projected to 256 channels.",
+        "Separate X and Y sinusoidal positional encodings, preserving 2D layout into the decoder.",
+        "Four-layer, eight-head Transformer decoder emitting LaTeX autoregressively.",
+        "Trained across CASIA, HME100K, CROHME and IAM plus Hugging Face formula sets and a synthetic generator.",
+        "Evaluated on BLEU, character error rate and exact match. Three metrics, because none alone is honest.",
+      ],
+      technical: [
+        "Mixed precision via torch.amp.autocast, with gradient accumulation of four steps at batch 4 for an effective batch of 16.",
+        "Flash Attention through F.scaled_dot_product_attention, which is the fused path rather than a hand-rolled kernel.",
+        "Optional gradient checkpointing on the encoder, trading recompute for memory when a run needs the headroom.",
+        "AdamW at lr 3e-4 with gradient clipping at 1.0, converging in roughly 50 epochs.",
+        "Documented VRAM and throughput table: approximately 6 GB at 2.8 it/s at batch 4 on an 8 GB RTX 5060 Ti.",
+      ],
+      architecture: `Image 256 × 256 × 3
+   │
+   ├─► ResNet-18 encoder        →  16 × 16 × 512
+   ├─► 1×1 conv projection      →  16 × 16 × 256
+   ├─► 2D positional encoding   →  X + Y sinusoidal
+   │
+   ├─► Transformer decoder      →  4 layers, 8 heads, d = 256
+   ├─► vocabulary projection    →  1,007 tokens
+   │
+   └─► autoregressive LaTeX sequence`,
+      architectureCaption:
+        "The 2D positional encoding is the load-bearing step. Remove it and the model can read symbols but not structure.",
+      challenges: [
+        {
+          challenge: "Flattening the feature map destroys the spatial layout of an equation.",
+          solution:
+            "Encode X and Y positions separately and add both, so the decoder retains the grid.",
+        },
+        {
+          challenge: "An encoder-decoder plus attention does not fit comfortably in 8 GB.",
+          solution:
+            "Mixed precision, gradient accumulation, fused attention, and checkpointing when needed.",
+        },
+        {
+          challenge: "Handwriting datasets are fragmented across incompatible formats.",
+          solution:
+            "Build a unified dataset assembly step over CASIA, HME100K, CROHME and IAM plus synthetic data.",
+        },
+        {
+          challenge: "A single metric flatters an OCR model.",
+          solution:
+            "Report BLEU, CER and exact match together: sequence quality, character accuracy, and whether it is actually right.",
+        },
+      ],
+      stack: [
+        {
+          group: "Model",
+          items: ["PyTorch", "torchvision", "ResNet-18", "Transformer decoder"],
+        },
+        { group: "Training", items: ["AMP / FP16", "Flash Attention", "AdamW", "CUDA"] },
+        {
+          group: "Data",
+          items: ["CASIA", "HME100K", "CROHME", "IAM", "Hugging Face Datasets"],
+        },
+        { group: "Evaluation", items: ["NLTK BLEU", "Levenshtein CER", "Exact match"] },
+      ],
+    },
   },
 
   /* --- secondary: real work, smaller scope --- */
@@ -127,24 +586,119 @@ export const projects: Project[] = [
     title: "LaTeX Converter",
     category: "AI/ML",
     period: "2026",
+    date: "2026-04-05",
     shortDescription:
-      "The earlier image-to-LaTeX pipeline — dataset assembly, training loop, and logging — that the 2D-attention model above grew out of.",
+      "The earlier image-to-LaTeX pipeline, carrying the dataset assembly, training loop and logging that the 2D-attention model above grew out of.",
     techStack: ["PyTorch", "Hugging Face Datasets", "Python"],
     featured: false,
     links: { github: "https://github.com/mricero/latek-converter" },
+    detail: {
+      overview: [
+        "The first attempt at image-to-LaTeX, and the reason the second one is shaped the way it is. It carries the parts that survived: dataset assembly across several incompatible handwriting corpora, a training loop, log plotting, and its own architecture document.",
+        "Kept here rather than deleted because the interesting thing about it is what it got wrong. This is the version without 2D positional encoding, which is precisely the gap ocr-2.0 exists to close.",
+      ],
+      keyFeatures: [
+        "Dataset download and master-dataset assembly across multiple handwriting corpora.",
+        "Training and evaluation entry points with checkpointing.",
+        "Log plotting for loss and metric curves across runs.",
+      ],
+      technical: [
+        "Separate download and build steps, so corpus acquisition is decoupled from dataset construction.",
+        "Its own architecture.md, written before the model was built rather than after.",
+      ],
+      stack: [{ group: "Core", items: ["PyTorch", "Hugging Face Datasets", "Python"] }],
+    },
   },
   {
     id: "hand-gesture-drawing",
     title: "Hand-Gesture Drawing Tool",
     category: "AI/ML",
     period: "2025",
+    date: "2025-06-21",
     shortDescription:
-      "Draw in the air: real-time hand tracking turns fingertip position into strokes on a live camera feed.",
-    techStack: ["MediaPipe", "OpenCV", "Python"],
+      "Draw in the air: real-time hand tracking turns fingertip position into geometric constructions on a live camera feed, with both hands working independently.",
+    highlight:
+      "A pinch is not a distance threshold, because fingers approach at an angle. Detection combines distance and angle, and a One Euro filter then removes tremor without adding the lag a fixed-window average would.",
+    techStack: ["MediaPipe", "OpenCV", "Python", "NumPy"],
     featured: false,
     links: { github: "https://github.com/mricero/hand-gesture-drawing-tool" },
+    detail: {
+      overview: [
+        "A computer-vision drawing tool with no input device: MediaPipe's 21-point hand model tracks both hands on a webcam feed, a pinch starts and ends a line, and the result is a geometric construction drawn in the air.",
+        "Two problems make this harder than it sounds. The first is that a pinch is ambiguous, because thumb and forefinger approach at an angle, so a pure distance threshold either fires early or refuses to fire at all. The second is that hands shake, and a raw landmark stream is unusable for drawing straight lines.",
+        "Both are solved in the signal rather than in the interface: distance and angle together for gesture detection, and a One Euro filter for smoothing, which suppresses tremor at low speed without adding the latency a fixed-window average would introduce at high speed.",
+      ],
+      keyFeatures: [
+        "Dual-hand recognition. Both hands draw simultaneously and independently, colour-coded.",
+        "Pinch detection combining fingertip distance and approach angle.",
+        "Temporal smoothing with a One Euro filter, tuned to keep fast strokes responsive.",
+        "Dynamic connection: new lines snap to existing endpoints or to the nearest point on an existing segment.",
+        "Live distance readouts between endpoints as a construction is drawn.",
+        "A triple-pinch exit gesture, so the application can be closed without touching a keyboard.",
+      ],
+      technical: [
+        "MediaPipe's 21-landmark hand model, tracked per hand per frame with independent state machines.",
+        "Vector projection onto line segments to find the nearest point for snapping, rather than only testing endpoints.",
+        "One Euro filtering, a speed-adaptive low-pass filter, which is the standard answer to the jitter-versus-lag tradeoff in interactive tracking.",
+        "Transparency overlays for connection hints and proximity indicators, so guidance never obscures the canvas.",
+      ],
+      challenges: [
+        {
+          challenge: "Distance alone misclassifies pinches, because fingers meet at an angle.",
+          solution: "Combine distance with approach angle before declaring a pinch.",
+        },
+        {
+          challenge: "Hand tremor makes straight lines impossible.",
+          solution:
+            "Apply a One Euro filter, which smooths hard when slow and lightly when fast.",
+        },
+        {
+          challenge: "Joining a new line to an existing one needs sub-pixel intent.",
+          solution:
+            "Project the cursor onto nearby segments and snap to the projection, not just to endpoints.",
+        },
+        {
+          challenge: "Two hands drawing at once means two independent gesture states.",
+          solution:
+            "Track per-hand state separately and colour-code the feedback so the user can tell them apart.",
+        },
+      ],
+      stack: [
+        { group: "Vision", items: ["MediaPipe", "OpenCV"] },
+        { group: "Maths", items: ["NumPy", "Vector projection", "One Euro filter"] },
+      ],
+      future: [
+        "Gesture-based shape recognition, snapping freehand strokes to geometric primitives.",
+        "Depth estimation for drawing in three dimensions.",
+        "Per-user gesture calibration learned over a session.",
+      ],
+    },
   },
 ]
 
 export const featuredProjects = projects.filter((p) => p.featured)
 export const otherProjects = projects.filter((p) => !p.featured)
+
+/** Newest first. `date` is ISO precisely so this never depends on parsing prose. */
+export const projectsByDate = [...projects].sort((a, b) =>
+  b.date.localeCompare(a.date)
+)
+
+export function getProject(id: string): Project | undefined {
+  return projects.find((p) => p.id === id)
+}
+
+/**
+ * Filter options for the listing page, derived rather than hardcoded. A new
+ * category on a project appears here automatically.
+ */
+export const projectCategories: ProjectCategory[] = [
+  ...new Set(projects.map((p) => p.category)),
+]
+
+/** Adjacent projects for the prev/next footer on a case study. */
+export function getProjectNeighbours(id: string) {
+  const i = projectsByDate.findIndex((p) => p.id === id)
+  if (i === -1) return { previous: undefined, next: undefined }
+  return { previous: projectsByDate[i - 1], next: projectsByDate[i + 1] }
+}

@@ -21,12 +21,19 @@ export default function Icon() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#0a0a0b",
-          color: "#33d6a0",
-          fontSize: 18,
-          fontWeight: 600,
+          /*
+           * Vermilion ground rather than paper. A 32px favicon sits on a
+           * browser tab strip that is itself near-white in light mode, so a
+           * paper-coloured mark would dissolve into it; the accent is the one
+           * colour in the palette that reads at this size against either.
+           * Hex, because Satori cannot resolve custom properties or oklch().
+           */
+          background: "#b14019",
+          color: "#fbfaf7",
+          fontSize: 17,
+          fontWeight: 700,
           letterSpacing: "-0.05em",
-          borderRadius: 6,
+          borderRadius: 5,
         }}
       >
         {siteConfig.initials}

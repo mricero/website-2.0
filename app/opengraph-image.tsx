@@ -1,14 +1,24 @@
 import { ImageResponse } from "next/og"
 
-import { siteConfig } from "@/data/site-config"
+import { focusAreas, siteConfig } from "@/data/site-config"
 
 /**
  * Under `output: export` there is no server to generate this on request, so it
  * must be rendered once at build time and written out as a file.
+ *
+ * The colours are the light theme's tokens resolved to hex, because Satori
+ * cannot read CSS custom properties or oklch(). They are hard-coded here and
+ * therefore have to be changed alongside :root in globals.css:
+ *
+ *   #fbfaf7  --background        paper
+ *   #231d19  --foreground        warm graphite
+ *   #6b635d  --muted-foreground
+ *   #b14019  --primary           vermilion
+ *   #e3dfda  --border
  */
 export const dynamic = "force-static"
 
-export const alt = `${siteConfig.name} — ${siteConfig.title}`
+export const alt = `${siteConfig.name}, ${siteConfig.title}`
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
 
@@ -22,21 +32,16 @@ export default function OpengraphImage() {
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          background: "#0a0a0b",
+          background: "#fbfaf7",
           padding: 72,
           fontFamily: "sans-serif",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ width: 28, height: 3, background: "#b14019" }} />
           <div
-            style={{
-              width: 10,
-              height: 10,
-              borderRadius: 999,
-              background: "#33d6a0",
-            }}
-          />
-          <div style={{ fontSize: 24, color: "#a1a1aa", letterSpacing: "-0.01em" }}>
+            style={{ fontSize: 24, color: "#6b635d", letterSpacing: "-0.01em" }}
+          >
             {siteConfig.location}
           </div>
         </div>
@@ -44,11 +49,11 @@ export default function OpengraphImage() {
         <div style={{ display: "flex", flexDirection: "column" }}>
           <div
             style={{
-              fontSize: 82,
+              fontSize: 86,
               fontWeight: 700,
-              color: "#fafafa",
+              color: "#231d19",
               letterSpacing: "-0.04em",
-              lineHeight: 1.05,
+              lineHeight: 1.02,
             }}
           >
             {siteConfig.name}
@@ -57,7 +62,7 @@ export default function OpengraphImage() {
             style={{
               marginTop: 20,
               fontSize: 34,
-              color: "#33d6a0",
+              color: "#b14019",
               letterSpacing: "-0.02em",
             }}
           >
@@ -65,12 +70,25 @@ export default function OpengraphImage() {
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 28, fontSize: 22, color: "#71717a" }}>
-          <div style={{ display: "flex" }}>Retrieval systems</div>
-          <div style={{ display: "flex" }}>·</div>
-          <div style={{ display: "flex" }}>Model compression</div>
-          <div style={{ display: "flex" }}>·</div>
-          <div style={{ display: "flex" }}>Computer vision</div>
+        {/*
+          Columns separated by space and a hairline, not by a row of middle
+          dots. The dot is rationed to one per line and this had two.
+        */}
+        <div
+          style={{
+            display: "flex",
+            gap: 40,
+            fontSize: 22,
+            color: "#6b635d",
+            borderTop: "1px solid #e3dfda",
+            paddingTop: 28,
+          }}
+        >
+          {focusAreas.map((area) => (
+            <div key={area} style={{ display: "flex" }}>
+              {area}
+            </div>
+          ))}
         </div>
       </div>
     ),

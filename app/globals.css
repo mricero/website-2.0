@@ -5,81 +5,138 @@
    rather than prefers-color-scheme. Without this, the toggle would be inert. */
 @custom-variant dark (&:is(.dark *));
 
-/* ---------------------------------------------------------------------------
-   Palette. spec.md §4 names four colours; shadcn's components need the full
-   token set, so the spec's four are mapped onto shadcn's semantic roles:
+/* ===========================================================================
+   PALETTE - "graphite on paper"
 
-     spec "background"  -> --background        deep zinc-black
-     spec "foreground"  -> --foreground        crisp white
-     spec "muted"       -> --muted / --border  subtle gray
-     spec "accent"      -> --primary + --ring  emerald
+   One warm neutral ramp and one accent. Nothing else.
 
-   Note --primary, not --accent. In shadcn's vocabulary `accent` is the *subtle
-   hover surface* (used by `hover:bg-accent` throughout the primitives), while
-   `primary` is the brand colour for buttons, links and active states. Binding
-   emerald to --accent would turn every hover into a slab of bright green.
---------------------------------------------------------------------------- */
+   The ramp is warm on purpose (hue 55-85, chroma 0.002-0.014): a cool zinc
+   ramp with an emerald accent is the shadcn starter palette, and it is the
+   single most recognisable signature of a generated site. Warm neutrals read
+   as printed matter, which is the right register for a mathematics and
+   computing portfolio.
+
+   The accent is a deep vermilion, the colour of a correction mark on a problem
+   sheet. It is used for exactly three things: links, the primary control, and
+   the "you are here" state. It is never decorative and never gradients into
+   anything.
+
+   Values are OKLCH so the two themes are the same colours at different
+   lightness rather than two separately-guessed palettes. Every pair below was
+   measured, not eyeballed:
+
+     light  fg/bg 15.96   muted-fg/bg 5.63   primary/bg 5.53   on-primary 5.71
+     dark   fg/bg 16.16   muted-fg/bg 7.23   primary/bg 7.28   on-primary 7.11
+
+   --border is a hairline and sits far below 3:1 by design; anything whose
+   *boundary* identifies it as a control uses --border-strong (3.49 light,
+   3.4 dark) instead.
+=========================================================================== */
 
 :root {
-  --background: hsl(0 0% 100%);
-  --foreground: hsl(240 10% 4%);
+  --background: oklch(0.984 0.004 85);
+  --foreground: oklch(0.235 0.012 55);
 
-  --card: hsl(0 0% 100%);
-  --card-foreground: hsl(240 10% 4%);
-  --popover: hsl(0 0% 100%);
-  --popover-foreground: hsl(240 10% 4%);
+  --card: oklch(0.995 0.002 85);
+  --card-foreground: oklch(0.235 0.012 55);
+  --popover: oklch(0.995 0.002 85);
+  --popover-foreground: oklch(0.235 0.012 55);
 
-  /* emerald, darkened to 28% L — 5.65:1 on white, comfortably past AA */
-  --primary: hsl(150 65% 28%);
-  --primary-foreground: hsl(0 0% 100%);
+  --primary: oklch(0.525 0.155 38);
+  --primary-foreground: oklch(0.995 0.002 85);
 
-  --secondary: hsl(240 5% 96%);
-  --secondary-foreground: hsl(240 6% 10%);
+  --secondary: oklch(0.955 0.006 80);
+  --secondary-foreground: oklch(0.265 0.012 55);
 
-  --muted: hsl(240 5% 96%);
-  --muted-foreground: hsl(240 4% 40%);
+  --muted: oklch(0.955 0.006 80);
+  --muted-foreground: oklch(0.505 0.014 60);
 
-  --accent: hsl(240 5% 96%);
-  --accent-foreground: hsl(240 6% 10%);
+  /* `accent` in this vocabulary is the subtle *hover surface* used by the
+     primitives, not the brand colour. Binding vermilion here would turn every
+     hover into a slab of orange. The brand colour is --primary. */
+  --accent: oklch(0.945 0.008 75);
+  --accent-foreground: oklch(0.265 0.012 55);
 
-  --destructive: hsl(0 72% 45%);
-  --destructive-foreground: hsl(0 0% 100%);
+  --destructive: oklch(0.505 0.19 25);
+  --destructive-foreground: oklch(0.995 0.002 85);
 
-  --border: hsl(240 6% 90%);
-  --input: hsl(240 6% 90%);
-  --ring: hsl(150 65% 28%);
+  /* Hairline. Decorative separation only. */
+  --border: oklch(0.905 0.008 75);
+  /* Interactive boundary: outline buttons, inputs, focusable chips. WCAG 1.4.11
+     wants 3:1 for anything whose border is the only thing identifying it. */
+  --border-strong: oklch(0.62 0.014 60);
+  --input: oklch(0.62 0.014 60);
+  --ring: oklch(0.525 0.155 38);
 
-  --radius: 0.625rem;
+  /*
+   * SHAPE LOCK. One radius for every surface and every control: 4px.
+   * The documented exception is a tag or status chip, which is pill-shaped
+   * because it is a discrete token rather than a container. Nothing else on
+   * the site is allowed a different corner.
+   */
+  --radius: 0.25rem;
+
+  /* Shadows carry the page hue, never neutral black. */
+  --shadow-tint: 30 22 16;
+
+  /* Z-index scale. Declared here so nothing has to invent a z-50. */
+  --z-nav: 40;
+  --z-overlay: 50;
+  --z-grain: 60;
+  --z-skip: 100;
 }
 
 .dark {
-  --background: hsl(240 10% 4%);
-  --foreground: hsl(0 0% 98%);
+  --background: oklch(0.175 0.008 62);
+  --foreground: oklch(0.945 0.006 85);
 
-  --card: hsl(240 8% 6%);
-  --card-foreground: hsl(0 0% 98%);
-  --popover: hsl(240 8% 7%);
-  --popover-foreground: hsl(0 0% 98%);
+  --card: oklch(0.215 0.009 62);
+  --card-foreground: oklch(0.945 0.006 85);
+  --popover: oklch(0.225 0.009 62);
+  --popover-foreground: oklch(0.945 0.006 85);
 
-  /* spec's accent, verbatim */
-  --primary: hsl(150 60% 50%);
-  --primary-foreground: hsl(150 90% 6%);
+  /*
+   * The accent changes hue between themes, which is normally a mistake. Here
+   * it is the point.
+   *
+   * Lightening the light-mode brick (#b14019) far enough to read on a dark
+   * ground turns it into a soft peach, and a soft peach on warm graphite is
+   * Anthropic's brand colour. Measured in OKLab, the old dark accent sat
+   * 0.052 from Claude's #d97757: closer to it than to anything else tested,
+   * and near enough that the site read as an AI product rather than as a
+   * person's portfolio.
+   *
+   * So the two themes carry the same *idea* in different media instead of the
+   * same hue at different lightness: light mode is a red pen on paper, dark
+   * mode is a highlighter. This olive-chartreuse measures 0.146 from the
+   * nearest recognisable AI or starter-template accent, the furthest of any
+   * usable candidate, and clears AA at 10.44:1 on --background.
+   *
+   * Deliberately NOT: purple or indigo (Linear #7c5cfc, Stripe #635bff),
+   * #0070f3 blue (Vercel), emerald (the shadcn default this site started on),
+   * or anything in the coral-to-sand band (#d97757, #d4955a).
+   */
+  --primary: oklch(0.8 0.145 118);
+  --primary-foreground: oklch(0.2 0.03 118);
 
-  --secondary: hsl(240 4% 14%);
-  --secondary-foreground: hsl(0 0% 98%);
+  --secondary: oklch(0.265 0.01 62);
+  --secondary-foreground: oklch(0.945 0.006 85);
 
-  --muted: hsl(240 4% 16%);
-  --muted-foreground: hsl(240 5% 65%);
+  --muted: oklch(0.265 0.01 62);
+  --muted-foreground: oklch(0.705 0.012 75);
 
-  --accent: hsl(240 4% 16%);
-  --accent-foreground: hsl(0 0% 98%);
+  --accent: oklch(0.275 0.011 62);
+  --accent-foreground: oklch(0.945 0.006 85);
 
-  --destructive: hsl(0 70% 58%);
-  --destructive-foreground: hsl(0 0% 98%);
+  --destructive: oklch(0.68 0.17 25);
+  --destructive-foreground: oklch(0.175 0.008 62);
 
-  --border: hsl(240 4% 16%);
-  --input: hsl(240 4% 18%);
-  --ring: hsl(150 60% 50%);
+  --border: oklch(0.295 0.01 62);
+  --border-strong: oklch(0.52 0.012 62);
+  --input: oklch(0.52 0.012 62);
+  --ring: oklch(0.8 0.145 118);
+
+  --shadow-tint: 0 0 0;
 }
 
 /* @theme inline is what turns a variable into a utility class. Declaring the
@@ -102,15 +159,28 @@
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  --font-sans: var(--font-geist-sans);
+  /*
+   * Three roles, three faces.
+   *   display  Archivo, a grotesque with enough width and weight to carry a
+   *            page title. Used ONLY at h1 and section-heading scale.
+   *   sans     Instrument Sans for everything read as prose or UI.
+   *   mono     Geist Mono for numbers, dates, labels and code.
+   *
+   * Geist Sans was here before and has been retired. It is a good typeface and
+   * it is also the default face of the framework this site is built with,
+   * which makes it the fastest way to be recognised as a template.
+   */
+  --font-display: var(--font-archivo);
+  --font-sans: var(--font-instrument-sans);
   --font-mono: var(--font-geist-mono);
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
+  --radius-sm: calc(var(--radius) - 1px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
   --radius-xl: calc(var(--radius) + 4px);
 }
 
@@ -130,28 +200,61 @@
     background-color: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
-    line-height: 1.625;
+    line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    /* A route change must never shift the layout because one page happens to
+       be short enough to lose the scrollbar. */
+    scrollbar-gutter: stable;
   }
 
-  h1, h2, h3, h4 {
-    letter-spacing: -0.035em;
+  /*
+   * A horizontal entrance offset must never be able to widen the document.
+   *
+   * [data-reveal="right"] holds its element 28px to the right until it lands.
+   * On the career timeline, where the cards already run to the container's
+   * right edge, that 28px sticks out past the viewport and gives a phone a
+   * horizontal scrollbar for as long as the card stays unrevealed, which on a
+   * tab the reader has not opened is forever.
+   *
+   * `clip`, not `hidden`. `overflow: hidden` establishes a scroll container,
+   * and every `position: sticky` inside it (the hero panel, the case-study
+   * rail, the whole home-page card stack) would then anchor to that container
+   * instead of to the viewport and silently stop sticking. `overflow-x: clip`
+   * with `overflow-y: visible` clips without creating a scrollport, which is
+   * exactly the case it was added to the spec for.
+   */
+  main {
+    overflow-x: clip;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    letter-spacing: -0.022em;
     text-wrap: balance;
+    font-weight: 600;
   }
 
   p {
     text-wrap: pretty;
   }
 
+  /* Numbers line up in columns; that is the whole reason to use a mono face. */
+  .font-mono {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.005em;
+  }
+
   /* base-nova primitives tag their headings with this class */
   .cn-font-heading {
     font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.018em;
   }
 
   ::selection {
-    background-color: color-mix(in oklch, var(--primary) 25%, transparent);
+    background-color: color-mix(in oklch, var(--primary) 22%, transparent);
     color: var(--foreground);
   }
 
@@ -159,55 +262,426 @@
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
+
+  /* Firefox honours these two; WebKit uses ::-webkit-scrollbar below. */
+  * {
+    scrollbar-color: var(--border-strong) transparent;
+    scrollbar-width: thin;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--border);
+    border: 3px solid var(--background);
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--muted-foreground);
+  }
+
+  /*
+   * Film grain over the entire page.
+   *
+   * This replaces the graph-paper grid that used to sit behind the headers.
+   * Ruled lines drawn purely to make a page "feel designed" are a tell; grain
+   * is a material property of printed paper, which is what the palette is
+   * already claiming to be.
+   *
+   * Fixed and pointer-events-none, per the performance rule: a noise layer
+   * attached to a scrolling container repaints on every frame. Fixed, it is
+   * composited once and never again.
+   */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-grain);
+    pointer-events: none;
+    opacity: 0.028;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .dark body::before {
+    opacity: 0.045;
+  }
 }
 
+/* ===========================================================================
+   TYPE SCALE
+=========================================================================== */
+
 @layer utilities {
-  /* one hairline rule used by the timeline and section dividers */
+  .font-display {
+    font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  }
+
+  /* Fluid, so a long name never wraps badly at 380px and never looks like a
+     shout at 1600px. Both clamp on the viewport rather than stepping at
+     breakpoints. */
+  .text-display {
+    font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+    font-size: clamp(2.5rem, 1.1rem + 5.6vw, 5rem);
+    line-height: 0.96;
+    letter-spacing: -0.035em;
+    font-weight: 600;
+  }
+
+  .text-page-title {
+    font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+    font-size: clamp(2rem, 1.2rem + 3.2vw, 3.25rem);
+    line-height: 1.02;
+    letter-spacing: -0.03em;
+    font-weight: 600;
+  }
+
+  .text-section-title {
+    font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+    font-size: clamp(1.5rem, 1.1rem + 1.5vw, 2.125rem);
+    line-height: 1.1;
+    letter-spacing: -0.026em;
+    font-weight: 600;
+  }
+
+  /* Small mono label. Used sparingly: at most one per three sections. */
+  .label-mono {
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-size: 0.6875rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+}
+
+/* ===========================================================================
+   SURFACES
+=========================================================================== */
+
+@layer utilities {
+  /* One hairline rule, used by section dividers. */
   .rule {
     background-image: linear-gradient(
       to right,
       var(--border),
-      color-mix(in oklch, var(--border) 20%, transparent)
+      color-mix(in oklch, var(--border) 15%, transparent)
     );
   }
 
   /*
-   * Above-the-fold entrance, in CSS rather than Framer.
-   * The hero holds the LCP element. A JS-driven fade leaves the <h1> at
-   * opacity:0 in the served HTML until React hydrates, which pushes LCP out to
-   * hydration time and shows a blank page on a slow connection. A CSS keyframe
-   * starts at first paint instead, needs no JavaScript, and degrades to the
-   * final state under prefers-reduced-motion via the block at the end of this
-   * file (0.01ms duration + `both` fill lands on the `to` frame).
+   * A card that earns its edges: hairline border, a one-pixel inner highlight
+   * along the top so the surface reads as lifted rather than drawn, and a
+   * shadow tinted with the page hue instead of neutral black.
    */
+  .surface {
+    background-color: color-mix(in oklch, var(--card) 92%, var(--background));
+    border: 1px solid var(--border);
+    box-shadow:
+      inset 0 1px 0 color-mix(in oklch, white 55%, transparent),
+      0 1px 2px rgb(var(--shadow-tint) / 0.04);
+  }
+
+  .dark .surface {
+    box-shadow:
+      inset 0 1px 0 color-mix(in oklch, white 4%, transparent),
+      0 1px 2px rgb(0 0 0 / 0.4);
+  }
+
+  .surface-hover {
+    transition:
+      border-color 0.35s cubic-bezier(0.32, 0.72, 0, 1),
+      box-shadow 0.35s cubic-bezier(0.32, 0.72, 0, 1),
+      transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  .surface-hover:hover {
+    border-color: color-mix(in oklch, var(--primary) 45%, var(--border));
+    box-shadow:
+      inset 0 1px 0 color-mix(in oklch, white 60%, transparent),
+      0 6px 20px -8px rgb(var(--shadow-tint) / 0.14);
+    transform: translateY(-2px);
+  }
+
+  .dark .surface-hover:hover {
+    box-shadow:
+      inset 0 1px 0 color-mix(in oklch, white 6%, transparent),
+      0 6px 20px -8px rgb(0 0 0 / 0.55);
+  }
+
+  /*
+   * The warm wash behind a page masthead. A single soft radial in the accent
+   * hue, offset to one side so the composition is not symmetrical.
+   */
+  .header-wash {
+    background-image: radial-gradient(
+      ellipse 70% 100% at 12% 0%,
+      color-mix(in oklch, var(--primary) 9%, transparent),
+      transparent 68%
+    );
+  }
+}
+
+/* ===========================================================================
+   MOTION
+
+   Two systems, kept strictly apart.
+
+   ONE-SHOT: [data-reveal], [data-branch], [data-node], [data-bar]. An element
+   animates the first time it is seen and is static forever after. The observer
+   in components/motion/reveal.tsx unobserves on first hit, so scrolling back
+   up never replays anything. This is deliberately not CSS
+   `animation-timeline: view()`, which is scroll-LINKED and plays backwards on
+   the way up: the opposite of an entrance.
+
+   SCROLL-LINKED: [data-spine-*], [data-scrollwrite], [data-stack-item], and
+   the hero exit. These track scroll position in both directions, because for
+   those the position IS the information. Each is driven by a Motion value
+   written straight to a style property, never through React state.
+=========================================================================== */
+
+@layer utilities {
+  [data-reveal] {
+    opacity: 0;
+    will-change: opacity, transform;
+    transition:
+      opacity 0.7s cubic-bezier(0.32, 0.72, 0, 1),
+      transform 0.7s cubic-bezier(0.32, 0.72, 0, 1),
+      filter 0.7s cubic-bezier(0.32, 0.72, 0, 1);
+    /* Stagger. --reveal-i is set per item by the Reveal component. */
+    transition-delay: calc(var(--reveal-i, 0) * 70ms);
+  }
+
+  [data-reveal="up"] {
+    transform: translate3d(0, 26px, 0);
+    filter: blur(3px);
+  }
+  [data-reveal="left"] {
+    transform: translate3d(-28px, 0, 0);
+  }
+  [data-reveal="right"] {
+    transform: translate3d(28px, 0, 0);
+  }
+  [data-reveal="scale"] {
+    transform: scale(0.965);
+    filter: blur(3px);
+  }
+  [data-reveal="none"] {
+    transform: none;
+  }
+
+  [data-reveal][data-revealed] {
+    opacity: 1;
+    transform: none;
+    filter: none;
+    will-change: auto;
+  }
+
+  /*
+   * The timeline branch: a hairline drawing out from the trunk to the card as
+   * each entry lands. Same one-shot contract as the reveal above.
+   */
+  [data-branch] {
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 0.55s cubic-bezier(0.32, 0.72, 0, 1);
+    transition-delay: calc(var(--reveal-i, 0) * 70ms + 90ms);
+  }
+  [data-branch][data-revealed] {
+    transform: scaleX(1);
+  }
+
+  /* Timeline node: small until the trunk reaches it, then settled for good. */
+  [data-node] {
+    transform: scale(0.5);
+    transition: transform 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition-delay: calc(var(--reveal-i, 0) * 70ms);
+  }
+  [data-node][data-revealed] {
+    transform: scale(1);
+  }
+
+  /* Skill bar fill, driven by --fill and released once on reveal. */
+  [data-bar] {
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 0.95s cubic-bezier(0.32, 0.72, 0, 1);
+    transition-delay: calc(var(--reveal-i, 0) * 55ms);
+  }
+  [data-bar][data-revealed] {
+    transform: scaleX(var(--fill, 1));
+  }
+
+  /*
+   * Scroll-written text.
+   *
+   * A statement whose words brighten one after another as the section crosses
+   * the viewport. `--p` is a 0-to-1 scroll progress written onto the container
+   * by Motion; each word carries its own `--i`, and the arithmetic below turns
+   * the two into a per-word opacity entirely in CSS. No per-word React state,
+   * and nothing re-renders on scroll.
+   *
+   * The `* 2.2` is the softness of the leading edge. At 1 the words would snap
+   * on one at a time, which reads as a progress bar rather than as writing.
+   */
+  [data-scrollwrite] > span {
+    opacity: clamp(
+      0.2,
+      calc((var(--p, 0) * var(--n, 1) - var(--i, 0)) * 2.2 + 0.2),
+      1
+    );
+    transition: opacity 0.12s linear;
+  }
+
+  /*
+   * Sticky stack. Each panel pins below the navbar and the next one arrives
+   * over it. The scale and dim are applied per card by Motion, so this rule
+   * owns only the pinning and the transform origin.
+   */
+  [data-stack-item] {
+    transform-origin: center top;
+  }
+
+  /*
+   * Only pin where a card is reliably shorter than the viewport. A sticky
+   * element taller than the space it is pinned into stops at the top and then
+   * scrolls anyway, which reads as a bug rather than as a stack; on a phone
+   * these cards stack their media above their text and get tall enough for
+   * that to happen. Below lg they are simply a list.
+   */
+  @media (min-width: 1024px) {
+    [data-stack-item] {
+      position: sticky;
+      top: 5.5rem;
+      will-change: transform;
+    }
+  }
+
+  /* Above-the-fold entrance, in CSS rather than JS.
+     The hero holds the LCP element. A JS-driven fade leaves the <h1> at
+     opacity:0 in the served HTML until React hydrates, which pushes LCP out to
+     hydration time and shows a blank page on a slow connection. A CSS keyframe
+     starts at first paint instead, needs no JavaScript, and degrades to the
+     final state under prefers-reduced-motion via the block at the end of this
+     file (0.01ms duration plus `both` fill lands on the `to` frame). */
   @keyframes rise {
     from {
       opacity: 0;
-      transform: translateY(20px);
+      transform: translateY(18px);
+      filter: blur(4px);
     }
     to {
       opacity: 1;
       transform: none;
+      filter: none;
     }
   }
 
   .animate-rise {
-    animation: rise 0.5s cubic-bezier(0.21, 0.47, 0.32, 0.98) both;
+    animation: rise 0.62s cubic-bezier(0.32, 0.72, 0, 1) both;
+  }
+
+  /* The pulse on a "Present" timeline node. Real semantic state, so it earns
+     the only infinite loop on the site. */
+  @keyframes node-pulse {
+    0% {
+      box-shadow: 0 0 0 0 color-mix(in oklch, var(--primary) 40%, transparent);
+    }
+    70% {
+      box-shadow: 0 0 0 9px transparent;
+    }
+    100% {
+      box-shadow: 0 0 0 0 transparent;
+    }
+  }
+
+  .animate-node-pulse {
+    animation: node-pulse 2.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  /* Physical press. Applied to every control, so the whole UI feels the same
+     under the finger. */
+  .press {
+    transition: transform 0.12s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .press:active {
+    transform: scale(0.975);
   }
 }
 
 /* Anyone who has asked their OS to stop moving things gets a static page.
-   Framer's `useReducedMotion` covers the JS side; this covers CSS transitions
-   and the smooth-scroll above, which Framer does not touch. */
+   The reveal system is covered explicitly rather than left to the transition
+   override, because an element that never receives `data-revealed` would
+   otherwise sit at opacity:0 forever if the observer were skipped. */
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
   }
+
+  [data-reveal],
+  [data-branch],
+  [data-node] {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    transition: none !important;
+  }
+
+  [data-bar] {
+    opacity: 1 !important;
+    transition: none !important;
+    transform: scaleX(var(--fill, 1)) !important;
+  }
+
+  /* Every word of a scroll-written line is simply readable. */
+  [data-scrollwrite] > span {
+    opacity: 1 !important;
+  }
+
+  /* Sticky stacking is disorientating without the motion cues that explain it,
+     so the panels become an ordinary vertical list. */
+  [data-stack-item] {
+    position: static !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+
+  /*
+   * The timeline trunk. ScrollSpine renders one tree for everybody and lets
+   * this override it, rather than branching on useReducedMotion(): that hook
+   * reads false on the server and true on the client, so branching on it
+   * hydration-mismatches for precisely the readers it was meant to help.
+   *
+   * `transform: none` cancels the scroll-linked scaleY, leaving the trunk
+   * drawn full height; the travelling head simply goes away.
+   */
+  [data-spine-trunk] {
+    transform: none !important;
+  }
+
+  [data-spine-tip] {
+    display: none !important;
+  }
+
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    /*
+     * Delays have to go too, not just durations.
+     *
+     * `.animate-rise` staggers the hero with delays up to half a second and
+     * fills `both`, which means the element holds its opacity:0 start frame
+     * until the delay elapses. Zeroing only the duration leaves someone who
+     * asked for no motion staring at a half-empty hero: the exact opposite of
+     * the intent.
+     */
+    animation-delay: 0s !important;
+    transition-delay: 0s !important;
   }
 }

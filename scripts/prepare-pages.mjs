@@ -42,4 +42,72 @@ if (!html.includes(expected)) {
   process.exit(1)
 }
 
-console.log("[prepare-pages] basePath verified, output ready to publish")
+console.log("[prepare-pages] basePath verified")
+
+/* ---------------------------------------------------------------------------
+ * RSC prefetch payload aliases.
+ *
+ * `next build` writes the segment-cache payloads as nested directories:
+ *
+ *     out/projects/__next.projects/__PAGE__.txt
+ *     out/projects/kurt/__next.projects/$d$slug/__PAGE__.txt
+ *
+ * The client asks for them dot-joined, as a single filename:
+ *
+ *     /projects/__next.projects.__PAGE__.txt
+ *     /projects/kurt/__next.projects.$d$slug.__PAGE__.txt
+ *
+ * On a server that rewrites, the difference never surfaces. On a plain file
+ * host like Pages it does: every <Link> prefetch 404s. Navigation still works,
+ * because Next falls back to fetching the page on click — you just lose the
+ * prefetch entirely, and get a console full of 404s.
+ *
+ * So write both spellings. The nested originals stay untouched, in case a
+ * later Next version starts requesting those instead.
+ * ------------------------------------------------------------------------- */
+
+/** Every file underneath `dir`, as paths relative to it. */
+function walk(dir, prefix = "") {
+  const found = []
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const rel = prefix ? `${prefix}/${entry.name}` : entry.name
+    if (entry.isDirectory()) found.push(...walk(path.join(dir, entry.name), rel))
+    else found.push(rel)
+  }
+  return found
+}
+
+let aliases = 0
+
+/** Find every `__next.*` payload directory and flatten what is inside it. */
+function flattenPayloads(dir) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue
+
+    const full = path.join(dir, entry.name)
+
+    if (entry.name.startsWith("__next.")) {
+      for (const rel of walk(full)) {
+        // "__next.projects" + "$d$slug/__PAGE__.txt"
+        //   -> "__next.projects.$d$slug.__PAGE__.txt"
+        const flat = `${entry.name}.${rel.split("/").join(".")}`
+        const target = path.join(dir, flat)
+        if (!fs.existsSync(target)) {
+          fs.copyFileSync(path.join(full, rel), target)
+          aliases++
+        }
+      }
+      // Payload directories never nest inside one another.
+      continue
+    }
+
+    // Skip the bundle directory: thousands of files, no payloads.
+    if (entry.name === "_next") continue
+
+    flattenPayloads(full)
+  }
+}
+
+flattenPayloads(OUT)
+console.log(`[prepare-pages] wrote ${aliases} RSC prefetch aliases`)
+console.log("[prepare-pages] output ready to publish")
