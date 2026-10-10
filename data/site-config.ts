@@ -32,7 +32,7 @@ export const siteConfig = {
    */
   url:
     process.env.NEXT_PUBLIC_SITE_URL ??
-    "https://mricero.github.io/website-2.0",
+    "https://www.mohnish.co.in",
 
   socials: {
     github: "https://github.com/mricero",

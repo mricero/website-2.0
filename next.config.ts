@@ -1,8 +1,10 @@
 import type { NextConfig } from "next"
 
 /**
- * GitHub Pages serves this repo at https://mricero.github.io/website-2.0/, so
- * every route and asset needs that prefix. Dev stays at "/" — `next dev` runs
+ * Served from the root of the custom domain https://www.mohnish.co.in (GitHub
+ * Pages + public/CNAME), so no prefix is needed. Previously this was the
+ * project-site path "/website-2.0"; keeping it after adding the domain made
+ * every CSS/JS request 404. Dev stays at "/" — `next dev` runs
  * with NODE_ENV=development — so local URLs are not littered with the repo name.
  *
  * If you later move to a custom domain, or rename the repo to `mricero.github.io`
@@ -11,7 +13,7 @@ import type { NextConfig } from "next"
  */
 const basePath =
   process.env.NEXT_PUBLIC_BASE_PATH ??
-  (process.env.NODE_ENV === "production" ? "/website-2.0" : "")
+  ""
 
 const nextConfig: NextConfig = {
   // Pages is a static file host — there is no Node server to render on demand.

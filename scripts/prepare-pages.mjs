@@ -33,8 +33,9 @@ if (!fs.existsSync(index)) {
 
 // Assets must be requested under the repo path, or every one of them 404s.
 const html = fs.readFileSync(index, "utf8")
-const expected = "/website-2.0/_next/"
-if (!html.includes(expected)) {
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? ""
+const expected = `${basePath}/_next/`
+if (!html.includes(`"${expected}`)) {
   console.error(
     `[prepare-pages] index.html does not reference ${expected} — basePath did ` +
       `not apply. Check next.config.ts; deploying this would 404 every asset.`
@@ -43,6 +44,13 @@ if (!html.includes(expected)) {
 }
 
 console.log("[prepare-pages] basePath verified")
+
+// Keep the custom domain: gh-pages replaces the whole branch, so a CNAME that
+// is not in out/ gets deleted and Pages falls back to mricero.github.io.
+if (!fs.existsSync(path.join(OUT, "CNAME"))) {
+  console.error("[prepare-pages] out/CNAME is missing — deploying would drop the custom domain.")
+  process.exit(1)
+}
 
 /* ---------------------------------------------------------------------------
  * RSC prefetch payload aliases.
