@@ -94,3 +94,7 @@ tasks.md
 *.local
 .scratch/
 tmp/
+
+# additions working material (raw originals, 5.8 MB film)
+/additions/
+/additions.md
