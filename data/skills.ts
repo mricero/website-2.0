@@ -168,14 +168,15 @@ export const skillCategories: SkillCategory[] = [
         name: "Git and Linux",
         level: 75,
         description:
-          "Day-to-day version control and branch hygiene on a Linux workstation, plus static deployment through GitHub Pages.",
+          "Day-to-day version control and branch hygiene on a Linux workstation, plus static deployment through GitHub Pages. CI matrices, tagged releases and GitHub Pages deploys through GitHub Actions.",
+        evidence: ["f1-telemetry", "wackystuff"],
       },
       {
         name: "Testing",
         level: 72,
         description:
-          "210 unit tests running in roughly six seconds with no external dependencies, plus a live smoke suite asserting twenty properties against a real Chroma server.",
-        evidence: ["legal-rag"],
+          "210 unit tests in roughly six seconds with no external dependencies on the legal assistant, and 905 offline tests on the F1 dashboard, gated in CI across Python 3.11 to 3.14 on Ubuntu and Windows with a 75 percent coverage floor.",
+        evidence: ["legal-rag", "f1-telemetry"],
       },
       {
         name: "Vector Databases",
@@ -195,7 +196,7 @@ export const skillCategories: SkillCategory[] = [
         name: "Networking",
         level: 65,
         description:
-          "WebSocket and SignalR protocol work down to the payload: subscribing to a live timing feed and decoding base64 plus zlib frames, and tunnelling a self-hosted API to a static front end.",
+          "WebSocket and SignalR protocol work down to the payload: a hand-written SignalR Core client with reconnect and backoff, decoding compressed live timing frames, and tunnelling a self-hosted API to a static front end.",
         evidence: ["f1-telemetry", "legal-rag"],
       },
       {
@@ -222,8 +223,8 @@ export const skillCategories: SkillCategory[] = [
         name: "SQL",
         level: 48,
         description:
-          "Schema design and query work against SQLite in WAL mode for document and job state.",
-        evidence: ["legal-rag"],
+          "Schema design and query work against SQLite in WAL mode, for document and job state and for a persistent records store.",
+        evidence: ["legal-rag", "f1-telemetry"],
       },
     ],
   },
@@ -311,7 +312,7 @@ export const skillCategories: SkillCategory[] = [
         level: 95,
         description:
           "Vector spaces, eigendecomposition, SVD and the matrix calculus every one of these models is written in.",
-        evidence: ["vit-compression"],
+        evidence: ["vit-compression", "wackystuff"],
       },
       {
         name: "Calculus",
@@ -364,8 +365,8 @@ export const skillCategories: SkillCategory[] = [
         name: "Information Theory",
         level: 60,
         description:
-          "Shannon entropy as a working tool: ranking attention heads by how unfocused their distributions are, then pruning the flat ones.",
-        evidence: ["vit-compression"],
+          "Shannon entropy as a working tool, ranking attention heads by how unfocused they are, and error detection as a design layer: Reed-Solomon, CRC32 and a whole-payload hash stacked so a misread frame can never become a corrupt file.",
+        evidence: ["vit-compression", "wackystuff"],
       },
       {
         name: "Group Theory",
