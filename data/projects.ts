@@ -8,11 +8,17 @@ import type { Project, ProjectCategory } from "@/types"
  *    metadata.
  *  - The CV PDF in the repository root, which supplies the date ranges, the
  *    ownership role on each project, and the ViT VRAM figures.
+ *  - Pinned repo commits for the October 2026 update:
+ *      F1-Telemetry-Dashboard @ 0feea8c (README, ARCHITECTURE, CHANGELOG,
+ *      IMPROVEMENTS). Images from its gh-pages branch, assets/img/.
+ *      wackystuff @ fe5e853 (README, specs/design.md, specs/spec.md). Images
+ *      captured headless from the repo served locally; it ships none itself.
  *
  * Rule for this file: no invented numbers. The hard figures below (210 tests,
  * 10-20x realtime, a 5 m resample grid, 24 sweep combinations, a 1,007-token
- * vocabulary, 401 MB down to 312 MB) each appear verbatim in a README or in
- * the CV.
+ * vocabulary, 401 MB down to 312 MB, 905 tests, 12 analysis views, v0.9.0,
+ * 3 QR codes per frame, ~3 s manifest, 75 to 1.4 simulated colour error) each
+ * appear verbatim in a README, a repo doc or the CV.
  *
  * One known conflict, left as the README has it: the CV's prose describes the
  * handwriting model as using a ResNet-50 encoder, while the README, the CV's
@@ -71,6 +77,8 @@ export const projects: Project[] = [
         "Practice-area tagging combining metadata filtering, gentle centroid steering, and a widened top-k to compensate.",
         "Background ingestion through Celery with live job state persisted to SQLite in WAL mode.",
         "Static React SPA on GitHub Pages talking to a self-hosted backend through a Cloudflare tunnel, with no cloud bill.",
+        "A loopback-only admin panel served by FastAPI itself: provider keys with live test buttons, ingestion with per-file practice areas, a document pipeline view, and retrieval runs that show which leg (lexical or vector) found each hit.",
+        "Bring your own provider: any OpenAI-compatible endpoint for chat and embeddings, including OpenRouter, NVIDIA NIM, Ollama and LM Studio.",
       ],
       technical: [
         "Reciprocal rank fusion over ranks rather than scores, so the two retrievers never need a shared scale.",
@@ -79,6 +87,7 @@ export const projects: Project[] = [
         "VRAM budgeting for a 3.3B-parameter bf16 OCR model plus SAM-ViT-B and CLIP-L: max length 32768 down to 8192, image size 1024 down to 640, page batch 4, Celery on a solo pool.",
         "Fail-closed tenancy: the embedder refuses unscoped writes and the router raises on an unfiltered query, so a missing session id is an error rather than a data leak.",
         "210 unit tests running with no external dependencies, plus a live smoke test asserting twenty properties against a real Chroma server.",
+        "The admin guard rejects any request carrying X-Forwarded-For, CF-Connecting-IP or Forwarded, because a request through the Cloudflare tunnel arrives looking like 127.0.0.1. Remote admin needs both a disabled local-only flag and a long random token.",
       ],
       architecture: `React SPA (GitHub Pages)
       │  HTTPS
@@ -265,80 +274,163 @@ Cloudflare Tunnel
     id: "f1-telemetry",
     title: "F1 Telemetry Dashboard",
     category: "Web",
-    period: "Jun 2026 to Jul 2026",
+    period: "Jun 2026 to Oct 2026",
     role: "Project lead",
-    date: "2026-07-14",
+    date: "2026-10-02",
     shortDescription:
-      "Live and historical Formula 1 telemetry: speed, throttle, brake, RPM, gear, DRS, tyre strategy and a GPS track map, streaming from F1's official timing feed with no paid tier.",
+      "Formula 1 timing on your own machine: follow a session live from F1's own timing feed, replay any race with the timing tower and track map, then take every lap apart in twelve analysis views. Installs with one command.",
     highlight:
-      "Drivers cross the line at different moments, so speed-against-time never lines up. Telemetry is interpolated onto a uniform five-metre distance grid, which is what makes two drivers genuinely comparable at the same braking point.",
+      "A replay is only honest if it never knows the future. Every snapshot is rebuilt from rows stamped at or before the cursor, so the tower, gaps and flags at lap 4 are exactly what was knowable at lap 4, and a dedicated test class fails the build if anything from later in the session leaks in.",
     techStack: [
       "Streamlit",
       "Plotly",
       "FastF1",
-      "SignalR",
+      "SignalR Core",
       "pandas",
-      "NumPy",
       "PyArrow",
+      "SQLite",
+      "uv",
     ],
+    image: "/projects/f1-replay-card.webp",
+    imageAlt:
+      "Replay of the 2020 Abu Dhabi Grand Prix on lap 4, with the timing tower beside a track map showing every car's position",
     featured: true,
-    links: { github: "https://github.com/mricero/F1-Telemetry-Dashboard" },
+    links: {
+      github: "https://github.com/mricero/F1-Telemetry-Dashboard",
+      live: "https://mricero.github.io/F1-Telemetry-Dashboard/",
+    },
     detail: {
       overview: [
-        "Comparing two Formula 1 laps sounds like a plotting exercise and is not. Plot speed against time for two drivers and the traces drift apart immediately, because they crossed the start line at different moments and carried different speeds through it. By the second corner you are comparing two different parts of the circuit to each other.",
-        "The fix is to change the x-axis. Both drivers' telemetry is interpolated onto a shared uniform five-metre distance grid, so index 400 means “two kilometres into the lap” for both of them. Only then does a braking-point comparison mean anything.",
-        "The other half of the project is getting the data at all. F1's live timing feed is a SignalR endpoint that broadcasts base64 and zlib payloads, and it only transmits on race weekends, roughly ten percent of the year. So the app probes the endpoint and, finding nothing live, degrades to the most recent completed Grand Prix rather than showing an empty screen.",
+        "This started as a lap-comparison chart and turned into a timing application. It follows a session live from F1's own timing feed, replays any historical session as it stood at any moment, and breaks every lap down across twelve analysis views, all running locally with no paid data tier for timing.",
+        "Comparing two laps is the first trap. Plot speed against time and two drivers drift apart immediately, because they crossed the line at different moments. Every channel is resampled onto a shared five-metre distance grid instead, so a braking-point comparison actually compares the same braking point. Stepwise channels (gear, DRS, brake) take the nearest sample rather than being interpolated, because a gear of 3.5 means nothing.",
+        "The replay is the second trap. A replay that quietly reads a row from later in the session shows a gap or a flag nobody could have known yet. Every snapshot is built only from data stamped at or before the cursor, and the test suite has a class whose whole job is to catch that leak.",
+        "The live side talks to F1's undocumented SignalR Core hub with its own client, because F1 closes long connections and has blocked heavy consumers of the feed. The project grew to a versioned v0.9.0 release, a CI matrix across Python 3.11 to 3.14 on Ubuntu and Windows, and one-line installers. It is unofficial and not associated with Formula 1.",
       ],
       metrics: [
+        { value: "905", label: "Tests passing, offline" },
+        { value: "12", label: "Analysis views per session" },
         { value: "5 m", label: "Uniform resample grid" },
-        { value: "4", label: "Live SignalR topics consumed" },
-        { value: "3", label: "Medallion ETL layers" },
-        { value: "Free", label: "Cost of the live data tier" },
+        { value: "v0.9.0", label: "First versioned release" },
       ],
       keyFeatures: [
-        "Direct connection to F1's official live timing SignalR endpoint, with no paid data subscription.",
-        "Distance-resampled telemetry so two drivers can be compared at the same point on track.",
-        "Channel charts for speed, throttle, brake, RPM, gear and DRS.",
-        "Lap-time progression with pit-stop indicators and tyre-strategy stacked bars.",
-        "GPS track map reconstructed from raw X/Y positional telemetry.",
-        "Graceful fallback to the most recent completed Grand Prix when no session is live.",
-        "Session record and replay: live streams saved to JSON and Parquet, then played back as simulated realtime for offline development.",
+        "Live page while a session is on air: timing tower with last and best lap, interval, gap, sectors and tyre history, plus sector leaders, race control, track status and weather.",
+        "Live championship: drivers' and constructors' standings as they would stand if the race finished in the current order.",
+        "Replay of any session: tower, track map, a track-position strip with every car on one line, flags and race control at the cursor, with playback, lap steps and a jump list of safety cars, pit stops and fastest laps.",
+        "Qualifying-aware replay with Q1 to Q3 segments, knock-outs and the segment clock.",
+        "Twelve analysis views: telemetry, head-to-head, lap times, race trace, tyre pace, pit rejoin, rankings, deleted laps, positions, weather, race control and team radio.",
+        "Records for fastest lap, sector bests and top speed, kept in a local database across every session loaded.",
+        "Shareable links: drivers, view and replay position live in the URL. Units, time zone and favourite drivers are configurable.",
+        "One-command install with uv, an f1dash command with paths and update subcommands, and a daily check for new releases.",
       ],
       technical: [
-        "FastF1's SignalRClient plus the LiveF1 package against wss://livetiming.formula1.com/signalrcore, subscribing to CarData.z, Position.z, TimingData and SessionInfo.",
-        "Payloads arrive base64-encoded and zlib-compressed; they are decoded and normalised into DataFrames on arrival.",
-        "numpy.interp onto a uniform five-metre grid, which is the single transformation that makes cross-driver comparison valid.",
-        "Medallion ETL: bronze holds the raw zlib JSON, silver the decoded per-topic frames, gold the resampled driver-merged output the charts read.",
-        "Layered module structure. Data adapters (FastF1, live, Jolpica) feed a telemetry processor which feeds the Streamlit UI, so a new source is an adapter rather than a rewrite.",
+        "Own SignalR Core client against wss://livetiming.formula1.com/signalrcore: negotiate, subscribe, 10 s pings, reconnect with backoff from 1 s to 60 s and a 120 s wait after a refusal. One upstream connection per process; browser tabs only read from it.",
+        "CarData.z and Position.z arrive base64-encoded and DEFLATE-compressed and are decoded at ingest into bounded buffers; state topics are deep-merged from keyframe plus deltas.",
+        "Car telemetry and positions have needed an F1TV token since the 2025 Dutch Grand Prix. The token is optional, read from the user's own .env, sent only to the timing host and never logged; timing, tyres, race control and weather work without it.",
+        "Telemetry resampled onto a 5 m distance grid, interpolating only continuous channels. The head-to-head time delta is integrated from the speed traces and lands within roughly 0.1-0.3 s of the true gap.",
+        "Replay as a browser-side player (a Streamlit component in plain JavaScript, tested with node --test) animating a JSON payload of positions on a regular time grid and change-point series for the tower.",
+        "Saved replays are Parquet tables plus a versioned meta.json, not pickles, because unpickling a file runs code from it. An older schema loads with defaults; a newer one is refused.",
+        "Tyre pace is fuel-corrected lap time against tyre age over clean laps only (no in or out laps, no safety car, VSC or red flag laps). The pit rejoin view predicts where a car would rejoin from green-flag pit lane times.",
+        "Layered package: data adapters (FastF1, Jolpica, OpenF1, live) produce one unified session dict, processing is pure transforms with no Streamlit and no network, and ui only renders.",
+        "CI on Ubuntu with Python 3.11 to 3.14 and Windows with 3.11 and 3.14: ruff, black, mypy, pytest with a 75 percent coverage floor, a hashed lockfile check, pip-audit, and a wheel install smoke test. Tagged releases publish automatically.",
       ],
+      architecture: `F1 SignalR Core (live) ──┐
+FastF1 archive ──────────┤
+Jolpica (standings) ─────┼──►  data/  one adapter per source
+OpenF1 (team radio) ─────┘          │
+                                    ▼
+                         unified session dict
+                                    │
+                                    ▼
+                     processing/   pure transforms
+                     5 m grid · timing tower · snapshot_at(t)
+                                    │
+                                    ▼
+                     ui/   Streamlit pages · Plotly
+                           SVG track map · JS replay player`,
+      architectureCaption:
+        "Every source produces the same session dict, so adding a source is an adapter, never a change to the renderers.",
       challenges: [
         {
-          challenge: "Speed-against-time does not align between two drivers.",
+          challenge: "Speed against time never lines up between two drivers.",
           solution:
-            "Resample every channel onto a shared five-metre distance grid before plotting anything.",
+            "Resample onto a shared five-metre distance grid, interpolating continuous channels and taking the nearest sample for gear, DRS and brake.",
         },
         {
           challenge:
-            "Live timing only broadcasts on race weekends, which leaves most of the year with no data.",
+            "A replay that reads one row from later in the session shows information nobody had yet.",
           solution:
-            "Probe the endpoint on load and fall back to the last completed Grand Prix, so the dashboard is never blank.",
+            "Build every snapshot only from rows stamped at or before the cursor, and keep a test class that fails if anything leaks forward.",
         },
         {
           challenge:
-            "Developing against a live feed that exists a few weekends a year is impossible.",
+            "F1 closes long connections and has blocked hosted consumers of the feed.",
           solution:
-            "Record live sessions to Parquet and replay them as simulated realtime streams.",
+            "Run locally with one connection per process, ping every ten seconds, back off on drops and wait two minutes after a refusal.",
         },
         {
-          challenge: "Commercial live telemetry APIs charge for the real-time tier.",
+          challenge: "Pickled replays execute code when they are opened.",
           solution:
-            "Go to F1's own SignalR endpoint directly and decode the compressed payloads.",
+            "Store replays as Parquet tables with a versioned meta.json, and refuse legacy pickles unless the user converts their own.",
+        },
+        {
+          challenge:
+            "Car telemetry moved behind an F1TV subscription in 2025.",
+          solution:
+            "Make the token optional and local: subscribe to those topics only when it is present, and keep timing, tyres, race control and weather working without it.",
+        },
+        {
+          challenge: "A Streamlit app is awkward to hand to someone without Python.",
+          solution:
+            "Ship it as a uv tool with one-line installers, an f1dash command and per-user data directories, so nothing touches the user's own Python.",
         },
       ],
       stack: [
-        { group: "Ingest", items: ["FastF1", "LiveF1", "SignalR", "Jolpica"] },
-        { group: "Processing", items: ["pandas", "NumPy", "PyArrow"] },
-        { group: "Interface", items: ["Streamlit", "Plotly"] },
+        { group: "Ingest", items: ["SignalR Core", "websockets", "FastF1", "Jolpica", "OpenF1"] },
+        { group: "Processing", items: ["pandas", "NumPy", "PyArrow", "SQLite (WAL)"] },
+        { group: "Interface", items: ["Streamlit", "Plotly", "SVG", "JavaScript"] },
+        { group: "Delivery", items: ["uv", "GitHub Actions", "pytest", "mypy", "ruff"] },
+      ],
+      gallery: [
+        {
+          src: "/projects/f1-replay.webp",
+          alt: "Replay of the 2020 Abu Dhabi Grand Prix on lap 4, the timing tower beside the track map",
+          caption: "Replay. The tower and track map exactly as they stood at the cursor.",
+        },
+        {
+          src: "/projects/f1-live-timing.webp",
+          alt: "Live timing tower during the 2026 Bahrain Grand Prix with gaps, sector times and tyre history",
+          caption: "Live timing from F1's own feed, no subscription needed for the tower.",
+        },
+        {
+          src: "/projects/f1-live-tyres.webp",
+          alt: "Tyre stints for every driver, coloured by compound across the race distance",
+          caption: "Every stint for every driver, by compound and lap.",
+        },
+        {
+          src: "/projects/f1-live-championship.webp",
+          alt: "Drivers' and constructors' standings with now, this race, projected and change columns",
+          caption: "The championship as it would stand if the race finished in the current order.",
+        },
+        {
+          src: "/projects/f1-live-weather.webp",
+          alt: "Air and track temperature, humidity, wind and pressure plotted over the session",
+          caption: "Session weather: air and track temperature, humidity, wind and pressure.",
+        },
+        {
+          src: "/projects/f1-replay-controls.webp",
+          alt: "Replay with the track-position strip, race control messages, playback controls and a lap timeline",
+          caption: "Track-position strip, race control and the timeline of safety cars, flags and pit stops.",
+        },
+        {
+          src: "/projects/f1-analysis-telemetry.webp",
+          alt: "Speed traces of five drivers' fastest laps lined up by distance, with the twelve analysis tabs above",
+          caption: "Telemetry lined up by distance, the transformation that makes laps comparable.",
+        },
+        {
+          src: "/projects/f1-analysis-race-trace.webp",
+          alt: "Race trace of every driver's gap to the leader by lap, with safety car laps shaded",
+          caption: "Race trace. Gap to the leader per lap, neutralised laps shaded.",
+        },
       ],
     },
   },
@@ -671,6 +763,144 @@ Cloudflare Tunnel
         "Gesture-based shape recognition, snapping freehand strokes to geometric primitives.",
         "Depth estimation for drawing in three dimensions.",
         "Per-user gesture calibration learned over a session.",
+      ],
+    },
+  },
+  {
+    id: "wackystuff",
+    title: "WackyStuff, Offline QR File Transfer",
+    category: "Web",
+    period: "Sep 2026",
+    date: "2026-09-16",
+    shortDescription:
+      "Send a file between two devices with no network at all: one screen loops QR frames, the other device's camera reads them back, and nothing is handed over until a SHA-256 of the reassembled bytes matches. Static HTML and vanilla JavaScript, no build step.",
+    highlight:
+      "Colour QR usually means inventing a new barcode and a fragile decoder. Instead each frame packs three ordinary QR codes into the red, green and blue channels, so decoding is the same proven scanner run three times, and a fixed reference swatch lets the receiver invert the camera's 3x3 colour-mixing matrix when channels bleed into each other.",
+    techStack: [
+      "JavaScript",
+      "Canvas",
+      "getUserMedia",
+      "jsQR",
+      "qrcode-generator",
+      "Web Crypto",
+      "GitHub Pages",
+    ],
+    image: "/projects/wackystuff-rgb-channels.webp",
+    imageAlt:
+      "One colour QR frame beside its red, green and blue channels, each of which is a standard black and white QR code",
+    featured: false,
+    links: {
+      github: "https://github.com/mricero/wackystuff",
+      live: "https://mricero.github.io/wackystuff/",
+    },
+    detail: {
+      overview: [
+        "WackyStuff is a dashboard of small front-end-only tools, and its first two tools move files between devices with no network connection: one screen shows a looping animation of QR frames, and a phone or laptop camera on the other device reads them. No server, no pairing, nothing leaves either device.",
+        "There is no acknowledgement channel, so the design does not need one. The sender loops every frame forever and the receiver's job is purely additive: keep the first good copy of each chunk until the set is complete and the whole-payload hash matches. A missed or misread frame costs one more loop, never a corrupt file.",
+        "The colour page is where the interesting decision sits. Dense custom colour symbologies exist, but they need a from-scratch decoder that has to survive white balance, compression and uneven light. Packing three standard QR codes into the R, G and B channels of one image gets up to three times the payload per frame while reusing a mature encoder and decoder unchanged.",
+      ],
+      metrics: [
+        { value: "3", label: "Standard QR codes per colour frame" },
+        { value: "0", label: "Server calls, ever" },
+        { value: "~3 s", label: "Manifest repeat interval" },
+        { value: "75 to 1.4", label: "Colour error /255 after unmixing, simulated" },
+      ],
+      keyFeatures: [
+        "Colour QR transfer: three QR codes packed into the RGB channels of one image, up to three times the payload per frame of the black and white page.",
+        "Black and white QR transfer: the same protocol on plain QR codes, slower but maximally compatible.",
+        "Files or text in, download or copy out, with the original filename and MIME type preserved.",
+        "Selectable error correction (M by default, H for noisy conditions) and three data-per-frame tiers: 260, 500 and 750 bytes.",
+        "Live estimate of frames needed and loop time before sending, a nudge towards Bluetooth or USB above 300 KB, and a hard stop above 20 MB.",
+        "Frame rates up to 120 fps, with the display's real refresh rate detected and shown so a higher setting is not a false promise.",
+        "A tool dashboard driven by one config file: adding a tool is one entry, and it appears on the dashboard and in the shared nav.",
+      ],
+      technical: [
+        "Every payload gets a manifest (session id, size, chunk count, SHA-256) re-sent every ~3 seconds, so a receiver that starts late waits seconds rather than a whole loop.",
+        "Four integrity layers: QR's own Reed-Solomon correction, a CRC32 per chunk, a session id so two transfers never mix, and a SHA-256 over the reassembled bytes before anything is offered back.",
+        "The three density tiers were chosen so no tier and error-correction combination can overflow a version 40 QR code at level H (1,273 bytes): with about 80 bytes of JSON wrapper and 1.34x base64 expansion, the largest tier lands near 1,080 bytes.",
+        "One QR version is fixed for the whole loop, computed from a synthetic worst-case chunk, so the code never changes size between frames and fights the camera's autofocus.",
+        "A spec-recommended four-module quiet zone is drawn into every frame, with a fixed HUD strip outside the module area.",
+        "Colour frames carry a fixed red, green, blue, white and black swatch strip. The receiver measures the camera's response to each, inverts the 3x3 colour-mixing matrix and retries only the channels that failed raw, so the correction can help but never regress a channel that already decoded.",
+        "Rendering runs on requestAnimationFrame rather than setInterval so it cannot queue a backlog, and scanning uses requestVideoFrameCallback where available to process each camera frame exactly once.",
+        "No framework and no bundler. The QR encoder and scanner are vendored, so the site works offline and from any static host.",
+      ],
+      architecture: `payload (file or text)
+   │
+   ├─► manifest   id · size · chunkCount · sha256   (every ~3 s)
+   ├─► chunks     id · i · n · crc32 · base64 data
+   │
+   ├─► B/W page     1 chunk   →  1 QR frame
+   └─► Colour page  3 chunks  →  R, G, B channels of 1 frame
+                         │
+        screen  ──────►  camera        no network
+                         │
+   receiver   split channels → jsQR on each → CRC32 check
+              collect until every index is present
+              SHA-256 must match → download or copy`,
+      architectureCaption:
+        "The sender never learns what arrived. Looping replaces the acknowledgement channel, and the hash replaces trust.",
+      challenges: [
+        {
+          challenge:
+            "A custom colour barcode needs a new decoder that has to survive real camera colour response.",
+          solution:
+            "Put three standard QR codes in the R, G and B channels and decode each with the same proven scanner.",
+        },
+        {
+          challenge: "There is no channel for the receiver to say what it missed.",
+          solution:
+            "Loop every frame forever and make reception additive, so a dropped frame only costs time.",
+        },
+        {
+          challenge:
+            "The QR changed size between frames, which a camera reads as the target moving.",
+          solution:
+            "Fix one QR version per transfer from a synthetic worst-case chunk, so every frame renders at the same size.",
+        },
+        {
+          challenge:
+            "Video compression and auto white balance bleed colour channels into each other.",
+          solution:
+            "Show a fixed swatch strip in every frame, measure the bleed and invert it, applied only as a fallback for channels that fail raw.",
+        },
+        {
+          challenge: "A render error inside the loop silently froze the sender on one frame.",
+          solution:
+            "Catch per frame, surface the error in the status line, skip the frame and keep looping.",
+        },
+      ],
+      stack: [
+        { group: "Front end", items: ["HTML", "CSS", "Vanilla JavaScript", "Canvas"] },
+        { group: "QR", items: ["qrcode-generator", "jsQR", "Reed-Solomon ECC"] },
+        { group: "Browser APIs", items: ["getUserMedia", "requestVideoFrameCallback", "Web Crypto"] },
+        { group: "Delivery", items: ["GitHub Pages", "GitHub Actions"] },
+      ],
+      gallery: [
+        {
+          src: "/projects/wackystuff-rgb-channels.webp",
+          alt: "A colour QR frame and its red, green and blue channels shown side by side as three black and white QR codes",
+          caption: "One colour frame, three ordinary QR codes. Each channel decodes on its own.",
+        },
+        {
+          src: "/projects/wackystuff-color-qr-sender.webp",
+          alt: "The colour QR sender panel looping frames, with frame rate, error correction and density controls",
+          caption: "Colour sender. The swatch strip under the code is what the receiver calibrates against.",
+        },
+        {
+          src: "/projects/wackystuff-bw-qr-sender.webp",
+          alt: "The black and white QR sender panel looping a chunk of a text payload",
+          caption: "The black and white page. Slower, readable by any QR scanner.",
+        },
+        {
+          src: "/projects/wackystuff-dashboard.webp",
+          alt: "The WackyStuff dashboard listing the colour and black and white QR transfer tools as cards",
+          caption: "The dashboard. One config entry adds a tool here and to the shared nav.",
+        },
+      ],
+      future: [
+        "Client-side compression before chunking, to cut frame count for text and documents.",
+        "Persisting received chunks to IndexedDB so a receiver can reload mid-transfer.",
+        "Adaptive frame rate driven by the receiver's scan success rate.",
       ],
     },
   },
