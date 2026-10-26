@@ -18,7 +18,7 @@ Five pages plus a case study per project. Every one is prerendered at build time
 |---|---|
 | `/` | Hero, the scroll-written statement, three projects, four skill areas, two internships |
 | `/skills` | Four areas, searchable and sortable, each skill linked to its evidence |
-| `/projects` | All seven, filterable by category |
+| `/projects` | All eight, filterable by category |
 | `/projects/[slug]` | Full case study, generated from `data/projects.ts` |
 | `/career` | Internships, Positions, Education, Results, on a scroll-driven timeline |
 | `/contact` | Message form, socials, location, languages |
@@ -51,7 +51,7 @@ all derive from that array. Four fields are worth using well:
 - **`role`** — "Project lead" / "Project co-lead", from the CV.
 - **`detail`** — optional. With it the project gets a full case study; without
   it, a card and a short page. Nothing breaks either way.
-- **`image`** — optional, and currently missing on five of seven. Without one a
+- **`image`** — optional, and currently missing on four of eight. Without one a
   card in the grid falls back to a typographic monogram, and a *wide* card drops
   its media panel entirely rather than showing a 400px empty rectangle. Set
   `imageTreatment: "chart"` for matplotlib plots on white so they invert cleanly
@@ -213,7 +213,7 @@ Notes on how it is wired:
 1. **`public/resume.pdf` does not exist.** `siteConfig.resumeAvailable` is
    `false`, so the hero shows GitHub instead of a Resume button and no dead link
    ships. Drop the PDF in `public/`, flip the flag, and the button appears.
-2. **Five of seven projects have no screenshot.** They degrade honestly, but
+2. **Four of eight projects have no screenshot.** They degrade honestly, but
    `/projects` would be materially better with real images at
    `public/projects/<id>-*.webp`. Add the path to `image` and a real `imageAlt`.
 3. **The deployment URL is baked in for GitHub Pages.** `siteConfig.url` and

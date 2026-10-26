@@ -17,7 +17,7 @@ import { buttonVariants } from "@/components/ui/button"
  * The home page is an index, not a container for everything.
  *
  * Each section is a trailer for a page that holds the real thing: three
- * projects out of seven, four areas out of forty skills, two internships out
+ * projects out of eight, four areas out of forty skills, two internships out
  * of a full timeline. Every one of them ends in a link to the page with the
  * rest, which is the whole reason this site is five routes rather than one
  * very long scroll.
@@ -91,7 +91,7 @@ export default function HomePage() {
       <Section
         id="work"
         heading="Selected work"
-        lede="Three of seven. The note on each is the part that was actually hard, not the part that took longest."
+        lede="Three of eight. The note on each is the part that was actually hard, not the part that took longest."
       >
         <StickyStack>
           {lead.map((project) => (
@@ -100,7 +100,7 @@ export default function HomePage() {
         </StickyStack>
 
         <Reveal className="mt-12">
-          <MoreLink href="/projects">All seven projects</MoreLink>
+          <MoreLink href="/projects">All eight projects</MoreLink>
         </Reveal>
       </Section>
 

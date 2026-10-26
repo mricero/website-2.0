@@ -9,7 +9,7 @@ import { ParallaxMedia } from "@/components/motion/scroll-linked"
 import { Badge } from "@/components/ui/badge"
 
 /**
- * Only two of the seven repos ship usable imagery, so the image is an
+ * Four of the eight projects ship imagery, so the image is an
  * enhancement rather than a requirement: without one the card falls back to a
  * typographic panel. Never a broken frame, never a stock photo.
  *
@@ -106,7 +106,7 @@ export function ProjectCard({
   const overflow = project.techStack.length - visibleTech.length
 
   /*
-   * Five of the seven projects have no screenshot. In the grid that is fine:
+   * Four of the eight projects have no screenshot. In the grid that is fine:
    * every card needs the same silhouette, so the monogram fills a 16/10 slot
    * and the row stays even.
    *
@@ -160,7 +160,7 @@ export function ProjectCard({
             </span>
           )}
           {/* From the CV. Worth stating: "project lead" on four of these is a
-              different claim from "I have seven repositories". */}
+              different claim from "I have eight repositories". */}
           {project.role && (
             <span className="font-mono text-xs text-muted-foreground/70">
               {project.role}

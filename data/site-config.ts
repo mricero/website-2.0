@@ -96,7 +96,7 @@ export const navItems: NavItem[] = [
   {
     label: "Projects",
     href: "/projects",
-    description: "Seven builds, five written up as full case studies",
+    description: "Eight builds, five written up as full case studies",
   },
   {
     label: "Career",

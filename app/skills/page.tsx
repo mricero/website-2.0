@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 
 /**
  * Both lookup tables are resolved here rather than inside the explorer, so
- * that data/projects.ts (seven full case studies, most of the site's prose)
+ * that data/projects.ts (eight full case studies, most of the site's prose)
  * and data/career.ts never cross into the client bundle just to render a
  * handful of link labels.
  */
@@ -70,7 +70,7 @@ export default function SkillsPage() {
               href="/projects"
               className="text-foreground underline decoration-border underline-offset-4 transition-colors hover:text-primary hover:decoration-primary/50"
             >
-              seven projects
+              eight projects
             </Link>
             , five of them written up in full.
           </p>

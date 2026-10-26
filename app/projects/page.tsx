@@ -10,7 +10,7 @@ import { ProjectsExplorer } from "@/components/projects/projects-explorer"
 export const metadata: Metadata = {
   title: "Projects",
   description:
-    "Retrieval systems, model-compression research, an offline AI tutor, live Formula 1 telemetry and handwriting OCR. Seven projects, five written up in full.",
+    "Retrieval systems, model-compression research, an offline AI tutor, live Formula 1 timing and replay, handwriting OCR and offline QR file transfer. Eight projects, five written up in full.",
   alternates: { canonical: `${siteConfig.url}/projects` },
 }
 
