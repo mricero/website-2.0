@@ -110,13 +110,21 @@ hyphen. `data/*.ts` and every page were swept for this.
 
 ## Animation
 
-Two systems, deliberately kept apart.
+Three systems, deliberately kept apart. Every duration, easing, spring and
+stagger lives in `lib/motion-config.ts` (the CSS mirrors them as `--ease-*`,
+`--dur-*` and friends in `app/globals.css`); components never write a literal.
 
-**One-shot reveals** (`components/motion/reveal.tsx`) are the default. An element
-fades in the first time it enters the viewport and is static forever after: a
-single shared `IntersectionObserver` unobserves it the moment it lands, so
-scrolling back up never replays it. All the visuals are CSS (`[data-reveal]` in
-`app/globals.css`); the component only decides *when* to stamp `data-revealed`.
+**One-shot** is the contract everything below shares. An element animates the
+first time it enters the viewport and is static forever after: a single shared
+`IntersectionObserver` (`observeOnce` in `components/motion/reveal.tsx`)
+unobserves it the moment it lands, so scrolling back up never replays it.
+`Reveal` itself is now a build (see below), so every card, row and panel
+assembles the same way; `useRevealOnce` and `observeOnce` remain for the
+pieces with their own entrance (skill rows and bars, timeline branches and
+nodes, count-ups), whose visuals are CSS (`[data-reveal]`, `[data-bar]`,
+`[data-branch]`, `[data-node]` in `app/globals.css`). Several callers can wait
+on the same element (a skill row is both a build and a reveal); each gets its
+callback.
 
 This is why it is not CSS `animation-timeline: view()`: that is scroll-*linked*
 and plays backwards as you scroll up, which is the opposite of an entrance.
@@ -127,6 +135,7 @@ the scroll position *is* the information:
 | Effect | Where | What it communicates |
 |---|---|---|
 | `ScrollFadeOut` | hero | the masthead handing off to the page |
+| `ScrollDepth` | the giant outlined name | depth; it lags the hero as it leaves |
 | `ScrollWrite` | home statement | pace; the one line meant to be read, not scanned |
 | `StickyStack` | home, selected work | sequence; these projects are in an order |
 | `ParallaxMedia` | project card images | the frame is a window, not a printed rectangle |
@@ -146,10 +155,77 @@ the card's own opacity: opacity on the wrapper makes the whole subtree
 translucent, and in a stack that means the card underneath reads straight
 through the one on top.
 
+`VelocityMarquee` (the focus areas on the home page) drifts on its own and
+speeds up with scroll velocity; its frame loop runs only while it is on screen.
+
+**Build** (`components/motion/build/`) is the third system: the page assembling
+itself, the way a layout tool or an agent harness shows work in progress. A
+cursor arrives, drags a selection frame round a block with a name tag on it, a
+grey skeleton fills the frame, and an opaque cover wipes off the real content.
+It is one-shot (it reuses the reveal observer) and multi-phase, never
+scroll-linked. On the first view of the home page in a browser session the
+page builds itself in real time, one block at a time, in about 7 seconds: a
+flock of cursors orbits a seed square, and just before each block's turn a
+couple of them peel off to its corners, draw its frame, hold the skeleton and
+wipe it open, so the flock thins out as the page fills in. Any key, click,
+wheel or touch skips straight to the finished page, and the input still goes
+through.
+
+| Piece | Job |
+|---|---|
+| `build.tsx` | `<Build label>`: wraps a block, adds one `aria-hidden` cover span |
+| `registry.ts` | module-level store linking blocks to the engine; no React context, so nothing re-renders |
+| `engine.ts` | schedules `data-build-state` (pending, frame, skeleton, resolve, done) and draws the canvas |
+| `sim.ts`, `draw.ts` | pure: the cursor simulation and the canvas drawing; no React, no DOM |
+| `stage.tsx` | the one fixed canvas, mounted last in `app/layout.tsx` |
+| `boot.tsx` | starts the home-page boot, or makes sure it never replays |
+
+What keeps it safe:
+
+- **The content is never hidden.** Blocks are server-rendered and opaque; only
+  the cover on top moves, and the cover's states are pure CSS. The `<h1>` is
+  painted from the first frame, so LCP is unaffected.
+- **A CSS failsafe** removes every build cover after 0.6s, and shows any
+  one-shot reveal still hidden after 2.6s, until the engine stamps
+  `data-build-ready` on `<html>`, so a failed or blocked bundle can never leave
+  the page covered. On an intro visit the inline script also sets
+  `data-boot-hold`, which stops the hero's covers timing out while the page's
+  scripts are still loading (a slow first visit still gets the whole intro):
+  it is released 1.5s after `load`, at once if a script fails to load, and
+  after 10s regardless, and then the ordinary failsafe runs. If the engine
+  arrives after a cover has already started to go, that block is left
+  uncovered rather than covered again. With scripting off a `<noscript>` rule
+  removes the covers outright.
+- **No render-time branching.** Whether the boot plays is decided by an inline
+  `<head>` script that writes `data-boot` (`play`, `skip` or `done`) onto
+  `<html>` before first paint; everything else reacts in CSS.
+- **Cursor travel is a minimum-jerk path**, re-planned from the current
+  position, velocity and acceleration on every new target, so nothing snaps.
+  The simulation runs on a fixed 1/120s step and is identical at any frame
+  rate. The loop stops after 8s with nothing to do.
+- **Everything builds**: the navbar, logo, buttons, page titles, cards and
+  rows. Blocks that arrive together are queued, ordered by position (reading
+  order) and started 60ms apart, with up to 14 frames live at once; extra
+  cursors fly in from the screen edges. Untagged blocks name themselves from
+  their own heading or text. On the first home visit the hero and navbar
+  build one after another in the ~7s intro; everywhere else they build as
+  they load.
+
 Reduced motion is handled entirely in CSS, never by branching on
 `useReducedMotion()` during render. That hook returns `false` on the server and
 its real value on the client, so branching on it produces a hydration mismatch
-for precisely the readers it was meant to help.
+for precisely the readers it was meant to help. Under reduced motion there are
+no covers, no canvas, no marquee drift and no magnetic or tilt effects.
+
+**Micro-interactions** (`components/motion/magnetic.tsx`): primary controls lean
+toward a nearby pointer, project cards tilt slightly, and case-study metrics
+count up once (`count-up.tsx`). The lean and the tilt are fine-pointer only,
+decided in an effect; all three are off under reduced motion.
+
+Once the builds are done a few **ambient cursors** drift in the right margin
+(only where the margin is wide enough to hold them) and fly to the next block
+that builds. A block scrolled past faster than 2500px/s wipes open without a
+frame.
 
 ## Theme
 
@@ -216,10 +292,10 @@ Notes on how it is wired:
 2. **Four of eight projects have no screenshot.** They degrade honestly, but
    `/projects` would be materially better with real images at
    `public/projects/<id>-*.webp`. Add the path to `image` and a real `imageAlt`.
-3. **The deployment URL is baked in for GitHub Pages.** `siteConfig.url` and
-   `basePath` in `next.config.ts` both encode `/website-2.0`, because Pages
-   serves project sites under `/<repo>/`. If you rename the repo, move to a
-   custom domain, or switch to a `mricero.github.io` user site, change **both**.
+3. **The site is served from the root of a custom domain.** `www.mohnish.co.in`
+   (`public/CNAME`), so `basePath` in `next.config.ts` defaults to `""`. To
+   serve under a sub-path again (a GitHub Pages project site at `/<repo>/`),
+   set `NEXT_PUBLIC_BASE_PATH` and change `siteConfig.url` with it.
 4. **`app/opengraph-image.tsx` and `app/icon.tsx` hard-code hex colours.** Satori
    cannot resolve CSS custom properties or `oklch()`. If you change the palette
    in `globals.css`, change those two files with it; both carry a comment listing
@@ -251,18 +327,23 @@ until the site is live:
 
 ```
 app/
-  layout.tsx        shell, fonts, metadata, JSON-LD, noscript reveal fallback
+  layout.tsx        shell, fonts, metadata, JSON-LD, noscript fallback,
+                    boot script, build stage mount
   page.tsx          home
   skills|projects|career|contact/   one folder per route
   projects/[slug]/  case studies, via generateStaticParams
   not-found.tsx     exported as 404.html
-  globals.css       palette, type scale, surfaces, and both motion systems
+  globals.css       palette, type scale, surfaces, and all three motion systems
 components/
   ui/               primitives (Base UI under the hood)
   layout/           navbar, footer, page-header, section, back-to-top, theme
   motion/           reveal (one-shot), scroll-linked (scroll-driven),
-                    scroll-spine (the timeline trunk), count-up
+                    scroll-spine (the timeline trunk), build/ (the build
+                    engine), split-words, magnetic, count-up
   home|projects|skills|career|contact/   per-route components
+lib/
+  motion-config.ts  every motion constant on the site
+  utils.ts          cn(), assetPath()
 data/                the content, as TypeScript
 types/               Project, Skill, TimelineEntry, Course, Achievement, NavItem
 ```

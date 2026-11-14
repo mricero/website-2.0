@@ -29,7 +29,7 @@ export default function Icon() {
            * Hex, because Satori cannot resolve custom properties or oklch().
            */
           background: "#b14019",
-          color: "#fbfaf7",
+          color: "#f8f7f4",
           fontSize: 17,
           fontWeight: 700,
           letterSpacing: "-0.05em",

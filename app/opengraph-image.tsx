@@ -10,11 +10,11 @@ import { focusAreas, siteConfig } from "@/data/site-config"
  * cannot read CSS custom properties or oklch(). They are hard-coded here and
  * therefore have to be changed alongside :root in globals.css:
  *
- *   #fbfaf7  --background        paper
+ *   #f0ede9  --background        paper
  *   #231d19  --foreground        warm graphite
- *   #6b635d  --muted-foreground
+ *   #675f59  --muted-foreground
  *   #b14019  --primary           vermilion
- *   #e3dfda  --border
+ *   #d9d5d0  --border
  */
 export const dynamic = "force-static"
 
@@ -32,7 +32,7 @@ export default function OpengraphImage() {
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          background: "#fbfaf7",
+          background: "#f0ede9",
           padding: 72,
           fontFamily: "sans-serif",
         }}
@@ -40,7 +40,7 @@ export default function OpengraphImage() {
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div style={{ width: 28, height: 3, background: "#b14019" }} />
           <div
-            style={{ fontSize: 24, color: "#6b635d", letterSpacing: "-0.01em" }}
+            style={{ fontSize: 24, color: "#675f59", letterSpacing: "-0.01em" }}
           >
             {siteConfig.location}
           </div>
@@ -79,8 +79,8 @@ export default function OpengraphImage() {
             display: "flex",
             gap: 40,
             fontSize: 22,
-            color: "#6b635d",
-            borderTop: "1px solid #e3dfda",
+            color: "#675f59",
+            borderTop: "1px solid #d9d5d0",
             paddingTop: 28,
           }}
         >
