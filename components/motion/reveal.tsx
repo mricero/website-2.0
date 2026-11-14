@@ -2,21 +2,26 @@
 
 import * as React from "react"
 
+import { Build } from "@/components/motion/build/build"
+
 /**
- * One-shot scroll reveals.
+ * One-shot entrances.
  *
  * The contract the whole site depends on: an element animates in the first
  * time it enters the viewport and is *static forever after*. Scrolling back up
  * must not replay it, and re-entering must not re-trigger it.
  *
  * That is enforced here rather than in CSS, because the CSS-native
- * `animation-timeline: view()` is scroll-*linked* — it plays backwards as you
- * scroll up, which is the opposite of what an entrance wants. It is also still
- * Chromium-and-Safari-only. An IntersectionObserver that unobserves on first
- * hit gives exactly the right semantics, everywhere.
+ * `animation-timeline: view()` is scroll-linked: it plays backwards as you
+ * scroll up, which is the opposite of what an entrance wants. An
+ * IntersectionObserver that unobserves on first hit gives exactly the right
+ * semantics, everywhere.
  *
- * Everything visual lives in the `[data-reveal]` rules in app/globals.css;
- * this file only decides *when* to stamp `data-revealed`.
+ * `observeOnce` is the shared observer every entrance on the site uses: the
+ * build engine, `useRevealOnce` (skill rows and bars, timeline branches and
+ * nodes, whose visuals are the `[data-reveal]`, `[data-bar]`, `[data-branch]`
+ * and `[data-node]` rules in app/globals.css) and the count-ups. `Reveal`
+ * itself is now a Build; see the note above RevealProps.
  */
 
 type RevealCallback = () => void
@@ -27,7 +32,13 @@ type RevealCallback = () => void
  * means forty independent intersection computations per scroll frame.
  */
 let sharedObserver: IntersectionObserver | null = null
-const pending = new WeakMap<Element, RevealCallback>()
+/*
+ * Several callers can watch the same element (a skill row is both a build and
+ * a reveal), so each element holds a set of callbacks, not one slot. A single
+ * slot let the second caller silently replace the first, and the row's own
+ * entrance never fired.
+ */
+const pending = new WeakMap<Element, Set<RevealCallback>>()
 
 function getObserver(): IntersectionObserver {
   if (sharedObserver) return sharedObserver
@@ -36,16 +47,16 @@ function getObserver(): IntersectionObserver {
     (entries, observer) => {
       for (const entry of entries) {
         if (!entry.isIntersecting) continue
-        const callback = pending.get(entry.target)
+        const callbacks = pending.get(entry.target)
         // Unobserve *before* invoking, so a callback that triggers layout
         // cannot cause this element to be queued a second time.
         observer.unobserve(entry.target)
         pending.delete(entry.target)
-        callback?.()
+        callbacks?.forEach((callback) => callback())
       }
     },
     {
-      // Fire slightly before the element is fully on screen — waiting until it
+      // Fire slightly before the element is fully on screen: waiting until it
       // is centred makes the page feel like it lags behind the scroll.
       rootMargin: "0px 0px -10% 0px",
       threshold: 0.08,
@@ -55,14 +66,28 @@ function getObserver(): IntersectionObserver {
   return sharedObserver
 }
 
-/** Observe `el` until it first intersects, then never again. */
+/**
+ * Observe `el` until it first intersects, then never again. Returns a
+ * function that withdraws this callback only; the element stays observed
+ * while any other caller is still waiting on it.
+ */
 export function observeOnce(el: Element, callback: RevealCallback): () => void {
-  pending.set(el, callback)
-  getObserver().observe(el)
+  let callbacks = pending.get(el)
+  if (!callbacks) {
+    callbacks = new Set()
+    pending.set(el, callbacks)
+    getObserver().observe(el)
+  }
+  callbacks.add(callback)
 
   return () => {
-    pending.delete(el)
-    sharedObserver?.unobserve(el)
+    const set = pending.get(el)
+    if (!set) return
+    set.delete(callback)
+    if (set.size === 0) {
+      pending.delete(el)
+      sharedObserver?.unobserve(el)
+    }
   }
 }
 
@@ -119,6 +144,22 @@ type RevealTag =
   | "figure"
   | "p"
 
+/*
+ * Reveal is a Build now.
+ *
+ * Every block on the site assembles itself the same way: a cursor arrives, a
+ * selection frame grows round the block, a skeleton fills it and an opaque
+ * cover wipes off the real content. Routing Reveal through Build is what makes
+ * that true of every card, row and panel at once, without touching their
+ * call sites. The props stay so those call sites keep compiling: `from` and
+ * `index` no longer apply, because the build engine orders blocks by where
+ * they sit and staggers them itself.
+ *
+ * The one-shot contract is unchanged: a block builds the first time it is
+ * seen (the same shared observer below) and is static forever after.
+ * `useRevealOnce` and `observeOnce` stay for the pieces with their own
+ * entrance (skill bars, timeline branches and nodes, count-ups).
+ */
 export interface RevealProps extends React.HTMLAttributes<HTMLElement> {
   /**
    * The element to render as. Defaults to a div.
@@ -129,42 +170,29 @@ export interface RevealProps extends React.HTMLAttributes<HTMLElement> {
    * has to live *on* the <li>, not around it.
    */
   as?: RevealTag
-  /** Entrance direction. "up" is the default and the right answer most of the time. */
+  /** Kept for call-site compatibility; the build replaces the direction. */
   from?: "up" | "left" | "right" | "scale" | "none"
-  /**
-   * Position within a staggered group; multiplied by 75ms to produce the delay.
-   * Pass the map index. There is no auto-numbering, because a component that
-   * silently reorders its children's timing is impossible to debug.
-   */
+  /** Kept for call-site compatibility; the engine staggers by position. */
   index?: number
+  /** Name tag for the frame. Without one the block names itself. */
+  label?: string
   children?: React.ReactNode
 }
 
 export function Reveal({
-  as: Tag = "div",
-  from = "up",
-  index = 0,
-  className,
-  style,
+  as = "div",
+  from,
+  index,
+  label,
   children,
   ...props
 }: RevealProps) {
-  const { ref, revealed } = useRevealOnce<HTMLElement>()
-
+  // Accepted and deliberately unused: see the note above RevealProps.
+  void from
+  void index
   return (
-    <Tag
-      // One generic ref across eight possible tags; the cast is the price of
-      // not writing eight near-identical components.
-      ref={ref as React.Ref<never>}
-      data-reveal={from}
-      data-revealed={revealed ? "" : undefined}
-      className={className}
-      style={
-        index ? ({ "--reveal-i": index, ...style } as React.CSSProperties) : style
-      }
-      {...props}
-    >
+    <Build as={as} label={label} {...props}>
       {children}
-    </Tag>
+    </Build>
   )
 }

@@ -25,47 +25,55 @@
    lightness rather than two separately-guessed palettes. Every pair below was
    measured, not eyeballed:
 
-     light  fg/bg 15.96   muted-fg/bg 5.63   primary/bg 5.53   on-primary 5.71
+     light  fg/bg 14.27   muted-fg/bg 5.36   primary/bg 4.98   on-primary 5.42
      dark   fg/bg 16.16   muted-fg/bg 7.23   primary/bg 7.28   on-primary 7.11
 
    --border is a hairline and sits far below 3:1 by design; anything whose
-   *boundary* identifies it as a control uses --border-strong (3.49 light,
+   *boundary* identifies it as a control uses --border-strong (3.46 light,
    3.4 dark) instead.
 =========================================================================== */
 
 :root {
-  --background: oklch(0.984 0.004 85);
+  /*
+   * Paper, softened. The page was 0.984 (#fbf9f7), which read as a lit white
+   * screen rather than as paper, and cards sat even whiter than that. Now the
+   * page is a soft, low-chroma grey paper (#f0ede9) and cards sit one step
+   * lighter (#f6f5f2), so a surface reads as a sheet lifted off the page
+   * rather than as the brightest thing on screen. Chroma stays low on
+   * purpose: more warmth than this turns paper into beige.
+   */
+  --background: oklch(0.948 0.006 80);
   --foreground: oklch(0.235 0.012 55);
 
-  --card: oklch(0.995 0.002 85);
+  --card: oklch(0.97 0.004 82);
   --card-foreground: oklch(0.235 0.012 55);
-  --popover: oklch(0.995 0.002 85);
+  --popover: oklch(0.97 0.004 82);
   --popover-foreground: oklch(0.235 0.012 55);
 
   --primary: oklch(0.525 0.155 38);
-  --primary-foreground: oklch(0.995 0.002 85);
+  --primary-foreground: oklch(0.975 0.004 85);
 
-  --secondary: oklch(0.955 0.006 80);
+  --secondary: oklch(0.92 0.006 80);
   --secondary-foreground: oklch(0.265 0.012 55);
 
-  --muted: oklch(0.955 0.006 80);
-  --muted-foreground: oklch(0.505 0.014 60);
+  --muted: oklch(0.92 0.006 80);
+  --muted-foreground: oklch(0.49 0.014 60);
 
   /* `accent` in this vocabulary is the subtle *hover surface* used by the
      primitives, not the brand colour. Binding vermilion here would turn every
      hover into a slab of orange. The brand colour is --primary. */
-  --accent: oklch(0.945 0.008 75);
+  --accent: oklch(0.915 0.008 75);
   --accent-foreground: oklch(0.265 0.012 55);
 
   --destructive: oklch(0.505 0.19 25);
-  --destructive-foreground: oklch(0.995 0.002 85);
+  --destructive-foreground: oklch(0.975 0.004 85);
 
   /* Hairline. Decorative separation only. */
-  --border: oklch(0.905 0.008 75);
+  --border: oklch(0.875 0.008 75);
   /* Interactive boundary: outline buttons, inputs, focusable chips. WCAG 1.4.11
      wants 3:1 for anything whose border is the only thing identifying it. */
-  --border-strong: oklch(0.62 0.014 60);
-  --input: oklch(0.62 0.014 60);
+  --border-strong: oklch(0.595 0.014 60);
+  --input: oklch(0.595 0.014 60);
   --ring: oklch(0.525 0.155 38);
 
   /*
@@ -81,18 +89,58 @@
 
   /* Z-index scale. Declared here so nothing has to invent a z-50. */
   --z-nav: 40;
+  /* The build canvas: above the navbar, under overlays and the grain, so the
+     cursors inherit the film texture for free. */
+  --z-build: 45;
   --z-overlay: 50;
   --z-grain: 60;
   --z-skip: 100;
+
+  /*
+   * BUILD COLOURS. A tool colour, not a brand colour: it exists only on the
+   * canvas (frames, handles, tags) and on the skeleton under a cover, and is
+   * never on resolved content, so "one accent" still holds for the page.
+   * Cyan-leaning in both themes, measured against --background:
+   *   light 3.96:1   dark 11.98:1   (a non-text stroke: 3:1 is the bar)
+   */
+  --build: oklch(0.55 0.13 230);
+  --build-foreground: oklch(0.975 0.004 85);
+  /* A flat mid-grey, the wireframe fill. Decorative: 1.33 light, 1.47 dark. */
+  --skeleton: oklch(0.855 0.006 80);
+
+  /*
+   * MOTION TOKENS. Mirrors of lib/motion-config.ts, which is the source of
+   * truth: change a value there, change its twin here.
+   */
+  --ease-out: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-in: cubic-bezier(0.5, 0, 0.75, 0);
+  --ease-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-1: 120ms;
+  --dur-2: 240ms;
+  --dur-3: 420ms;
+  --dur-4: 700ms;
+  --dur-5: 1100ms;
+  --stagger-block: 60ms;
+  --stagger-word: 18ms;
+  /* build.failsafe*Ms and boot.fastForward in lib/motion-config.ts */
+  --failsafe-delay: 600ms;
+  --failsafe-boot-delay: 2600ms;
+  --failsafe-dur: 300ms;
+  --dur-ff: 100ms;
 }
 
 .dark {
-  --background: oklch(0.175 0.008 62);
+  /* The stage. Moved toward true black (from 0.175) so the build effect and
+     the outlined type have a black ground to read against; the whole dark
+     ramp moved down with it by the same step. */
+  --background: oklch(0.13 0.006 62);
   --foreground: oklch(0.945 0.006 85);
 
-  --card: oklch(0.215 0.009 62);
+  --card: oklch(0.17 0.008 62);
   --card-foreground: oklch(0.945 0.006 85);
-  --popover: oklch(0.225 0.009 62);
+  --popover: oklch(0.18 0.009 62);
   --popover-foreground: oklch(0.945 0.006 85);
 
   /*
@@ -119,24 +167,28 @@
   --primary: oklch(0.8 0.145 118);
   --primary-foreground: oklch(0.2 0.03 118);
 
-  --secondary: oklch(0.265 0.01 62);
+  --secondary: oklch(0.22 0.01 62);
   --secondary-foreground: oklch(0.945 0.006 85);
 
-  --muted: oklch(0.265 0.01 62);
+  --muted: oklch(0.22 0.01 62);
   --muted-foreground: oklch(0.705 0.012 75);
 
-  --accent: oklch(0.275 0.011 62);
+  --accent: oklch(0.23 0.011 62);
   --accent-foreground: oklch(0.945 0.006 85);
 
   --destructive: oklch(0.68 0.17 25);
-  --destructive-foreground: oklch(0.175 0.008 62);
+  --destructive-foreground: oklch(0.13 0.006 62);
 
-  --border: oklch(0.295 0.01 62);
+  --border: oklch(0.25 0.01 62);
   --border-strong: oklch(0.52 0.012 62);
   --input: oklch(0.52 0.012 62);
   --ring: oklch(0.8 0.145 118);
 
   --shadow-tint: 0 0 0;
+
+  --build: oklch(0.82 0.12 215);
+  --build-foreground: oklch(0.13 0.006 62);
+  --skeleton: oklch(0.3 0.006 62);
 }
 
 /* @theme inline is what turns a variable into a utility class. Declaring the
@@ -162,6 +214,8 @@
   --color-border-strong: var(--border-strong);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-build: var(--build);
+  --color-skeleton: var(--skeleton);
 
   /*
    * Three roles, three faces.
@@ -194,6 +248,16 @@
     /* the fixed navbar is 4rem tall; without this, anchor jumps land underneath it */
     scroll-padding-top: 5rem;
     -webkit-text-size-adjust: 100%;
+  }
+
+  /*
+   * A <Build> root. In base, not utilities, so a `sticky` or `absolute`
+   * utility on the same element still wins; the cover only needs the root
+   * to be a containing block, which sticky is too.
+   */
+  [data-build] {
+    position: relative;
+    isolation: isolate;
   }
 
   body {
@@ -326,7 +390,7 @@
      breakpoints. */
   .text-display {
     font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
-    font-size: clamp(2.5rem, 1.1rem + 5.6vw, 5rem);
+    font-size: clamp(2.5rem, 1rem + 6.4vw, 6.5rem);
     line-height: 0.96;
     letter-spacing: -0.035em;
     font-weight: 600;
@@ -346,6 +410,62 @@
     line-height: 1.1;
     letter-spacing: -0.026em;
     font-weight: 600;
+  }
+
+  /*
+   * The giant outlined word behind the hero name. Decorative and aria-hidden;
+   * the real <h1> is the slab in front of it.
+   *
+   * Archivo at its narrowest width (wdth 62, loaded as a variable axis in
+   * app/layout.tsx) and heaviest weight, so seven letters fit a phone. The
+   * stroke is the accent: 5.56:1 on paper, 11.08:1 on the stage.
+   */
+  .text-mega {
+    font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+    font-size: clamp(4rem, 19vw, 17rem);
+    font-weight: 800;
+    font-variation-settings: "wdth" 62;
+    line-height: 0.8;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: transparent;
+    -webkit-text-stroke: 1.5px var(--primary);
+    user-select: none;
+  }
+
+  /* The smaller outlined route name behind an inner page title. */
+  .text-mark {
+    font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+    font-size: clamp(3rem, 12vw, 9rem);
+    font-weight: 800;
+    font-variation-settings: "wdth" 62;
+    line-height: 0.8;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: transparent;
+    -webkit-text-stroke: 1px color-mix(in oklch, var(--primary) 70%, transparent);
+    user-select: none;
+  }
+
+  /* Pull the name slab up over the lower part of the giant word. */
+  .mega-overlap {
+    margin-top: calc(clamp(4rem, 19vw, 17rem) * -0.3);
+  }
+
+  /*
+   * The name slab: a title set in a solid block of the accent. Inline with
+   * box-decoration-break, so a title that wraps gets one block per line
+   * rather than one ragged rectangle. 4px radius, as everywhere.
+   *   light on-primary/primary 5.71:1   dark 9.92:1
+   */
+  .slab {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+    padding: 0.02em 0.16em 0.06em;
+    border-radius: var(--radius);
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
   }
 
   /* Small mono label. Used sparingly: at most one per three sections. */
@@ -381,7 +501,7 @@
     background-color: color-mix(in oklch, var(--card) 92%, var(--background));
     border: 1px solid var(--border);
     box-shadow:
-      inset 0 1px 0 color-mix(in oklch, white 55%, transparent),
+      inset 0 1px 0 color-mix(in oklch, white 40%, transparent),
       0 1px 2px rgb(var(--shadow-tint) / 0.04);
   }
 
@@ -401,7 +521,7 @@
   .surface-hover:hover {
     border-color: color-mix(in oklch, var(--primary) 45%, var(--border));
     box-shadow:
-      inset 0 1px 0 color-mix(in oklch, white 60%, transparent),
+      inset 0 1px 0 color-mix(in oklch, white 45%, transparent),
       0 6px 20px -8px rgb(var(--shadow-tint) / 0.14);
     transform: translateY(-2px);
   }
@@ -423,12 +543,42 @@
       transparent 68%
     );
   }
+
+  /* Raised on the dark stage, which is otherwise flat black at the top. */
+  .dark .header-wash {
+    background-image: radial-gradient(
+      ellipse 70% 100% at 12% 0%,
+      color-mix(in oklch, var(--primary) 14%, transparent),
+      transparent 68%
+    );
+  }
+
+  /* A text link whose underline draws in from the left and leaves to the right. */
+  .link-draw {
+    position: relative;
+  }
+  .link-draw::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    bottom: -3px;
+    height: 1px;
+    background-color: currentColor;
+    transform: scaleX(0);
+    transform-origin: right center;
+    transition: transform var(--dur-2) var(--ease-out);
+  }
+  .link-draw:hover::after,
+  .link-draw:focus-visible::after {
+    transform: scaleX(1);
+    transform-origin: left center;
+  }
 }
 
 /* ===========================================================================
    MOTION
 
-   Two systems, kept strictly apart.
+   Three systems, kept strictly apart.
 
    ONE-SHOT: [data-reveal], [data-branch], [data-node], [data-bar]. An element
    animates the first time it is seen and is static forever after. The observer
@@ -441,6 +591,12 @@
    the hero exit. These track scroll position in both directions, because for
    those the position IS the information. Each is driven by a Motion value
    written straight to a style property, never through React state.
+
+   BUILD: [data-build], [data-build-cover], the canvas stage. One-shot like
+   the reveals (it reuses the same observer) but multi-phase: a cursor draws
+   a selection frame, a skeleton fills it, and an opaque cover wipes off the
+   real content underneath. The content is server-rendered and fully opaque
+   the whole time; only the cover moves. See components/motion/build/.
 =========================================================================== */
 
 @layer utilities {
@@ -448,11 +604,11 @@
     opacity: 0;
     will-change: opacity, transform;
     transition:
-      opacity 0.7s cubic-bezier(0.32, 0.72, 0, 1),
-      transform 0.7s cubic-bezier(0.32, 0.72, 0, 1),
-      filter 0.7s cubic-bezier(0.32, 0.72, 0, 1);
+      opacity var(--dur-4) var(--ease-out),
+      transform var(--dur-4) var(--ease-out),
+      filter var(--dur-4) var(--ease-out);
     /* Stagger. --reveal-i is set per item by the Reveal component. */
-    transition-delay: calc(var(--reveal-i, 0) * 70ms);
+    transition-delay: calc(var(--reveal-i, 0) * var(--stagger-block));
   }
 
   [data-reveal="up"] {
@@ -581,7 +737,247 @@
   }
 
   .animate-rise {
-    animation: rise 0.62s cubic-bezier(0.32, 0.72, 0, 1) both;
+    animation: rise var(--dur-4) var(--ease-out) both;
+  }
+
+  /*
+   * Word rise. Headings are split by word ON THE SERVER (SplitWords), each
+   * word an inline-block mask with an inner span rising out of it. Pure CSS:
+   * no client measurement, so no hydration mismatch, and the heading is in
+   * the HTML from the first byte.
+   *
+   * The padding and matching negative margin give descenders room inside the
+   * mask without moving the line.
+   */
+  @keyframes word-rise {
+    from {
+      transform: translate3d(0, 110%, 0);
+    }
+    to {
+      transform: none;
+    }
+  }
+
+  .rise-w {
+    display: inline-block;
+    overflow: hidden;
+    vertical-align: top;
+    padding: 0 0.04em 0.12em;
+    margin: 0 -0.04em -0.12em;
+  }
+  .rise-w > span {
+    display: inline-block;
+    animation: word-rise var(--dur-3) var(--ease-out-expo) both;
+  }
+  /* The giant word sets line-height 0.8, which would slice the tops off its
+     capitals inside the mask; give the mask headroom without moving the line. */
+  .text-mega .rise-w {
+    padding-top: 0.14em;
+    margin-top: -0.14em;
+  }
+
+  /*
+   * Build covers.
+   *
+   *   data-build-state   cover
+   *   (none) pending     opaque stage colour over the content
+   *   frame              same; the canvas draws the selection frame
+   *   skeleton           the skeleton layer fades in on top
+   *   resolve            wipes off: scaleX 1 to 0, origin right
+   *   done               gone
+   *
+   * Two stacked layers (stage colour, skeleton) so the colour change is an
+   * opacity change rather than a colour animation, and the wipe is a
+   * transform. Nothing here animates anything but opacity and transform.
+   */
+  /*
+   * --cover-bleed lets a block whose paint overflows its own box (the name
+   * slab: box-decoration padding and descender room spill past the line box)
+   * extend its cover to match, so nothing peeks out mid-build.
+   */
+  [data-build-cover] {
+    position: absolute;
+    inset: calc(-1px - var(--cover-bleed, 0px));
+    z-index: 30;
+    pointer-events: none;
+    background-color: var(--background);
+    transform-origin: right center;
+  }
+  [data-build-cover]::after {
+    content: "";
+    position: absolute;
+    inset: 3px;
+    border-radius: var(--radius);
+    background-color: var(--skeleton);
+    opacity: 0;
+    transition: opacity var(--dur-2) var(--ease-out);
+  }
+  [data-build-state="skeleton"] > [data-build-cover]::after,
+  [data-build-state="resolve"] > [data-build-cover]::after {
+    opacity: 1;
+  }
+  [data-build-state="resolve"] > [data-build-cover] {
+    transform: scaleX(0);
+    transition: transform var(--dur-3) var(--ease-out-expo);
+  }
+  [data-build-state="done"] > [data-build-cover] {
+    display: none;
+  }
+  /* Any input during the boot fast-forwards every wipe. */
+  html[data-build-fast] [data-build-state="resolve"] > [data-build-cover] {
+    transition-duration: var(--dur-ff);
+  }
+
+  /*
+   * FAILSAFE. Until the stage hydrates and stamps data-build-ready on <html>,
+   * every cover removes itself on a timer, so a slow or blocked bundle can
+   * never leave content hidden: 0.6s for section covers, 2.6s for the boot.
+   * Once the stage is ready this rule stops matching and the state machine
+   * above takes over.
+   */
+  @keyframes cover-off {
+    to {
+      opacity: 0;
+      visibility: hidden;
+    }
+  }
+  html:not([data-build-ready]) [data-build-cover] {
+    animation: cover-off var(--failsafe-dur) var(--ease-out)
+      var(--failsafe-delay) forwards;
+  }
+  /*
+   * The hold (see boot.holdGraceMs): while the page's scripts are still on
+   * their way on a boot visit, the hero's covers do not time out at all.
+   * When the hold is released the ordinary failsafe above takes over.
+   */
+  html[data-boot-hold]:not([data-build-ready])
+    [data-build-boot]
+    > [data-build-cover] {
+    animation: none;
+  }
+
+  /*
+   * The same failsafe for the one-shot reveals, which otherwise sit at
+   * opacity 0 forever when the bundle never runs (a blocked or failed
+   * script, as opposed to scripting off, which <noscript> covers). Late
+   * enough that it never races a normal hydration.
+   */
+  @keyframes reveal-failsafe {
+    to {
+      opacity: 1;
+      transform: none;
+      filter: none;
+    }
+  }
+  @keyframes bar-failsafe {
+    to {
+      transform: scaleX(var(--fill, 1));
+    }
+  }
+  html:not([data-build-ready]) [data-reveal]:not([data-revealed]),
+  html:not([data-build-ready]) [data-branch]:not([data-revealed]),
+  html:not([data-build-ready]) [data-node]:not([data-revealed]),
+  html:not([data-build-ready]) [data-scrollwrite] > span {
+    animation: reveal-failsafe var(--failsafe-dur) var(--ease-out)
+      var(--failsafe-boot-delay) forwards;
+  }
+  html:not([data-build-ready]) [data-bar]:not([data-revealed]) {
+    animation: bar-failsafe var(--failsafe-dur) var(--ease-out)
+      var(--failsafe-boot-delay) forwards;
+  }
+
+  /*
+   * The engine started after that failsafe had already shown everything (a
+   * very slow load). Keep it shown for this page view rather than let the
+   * reveals blink out and back in.
+   */
+  html[data-failsafe-fired] [data-reveal],
+  html[data-failsafe-fired] [data-branch],
+  html[data-failsafe-fired] [data-node] {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+  html[data-failsafe-fired] [data-bar] {
+    transform: scaleX(var(--fill, 1));
+  }
+
+  /*
+   * The hero's accent wash waits out the boot and blooms in when it ends.
+   * Covers are flat stage colour, and over a tinted ground they would read
+   * as pale boxes rather than as empty page.
+   */
+  [data-boot-wash] {
+    transition: opacity var(--dur-5) var(--ease-out);
+  }
+  html[data-boot="play"] [data-boot-wash] {
+    opacity: 0;
+  }
+
+  /*
+   * Boot modes, set on <html> by the inline script in app/layout.tsx before
+   * first paint, so there is no flash and no render-time branching:
+   *   play  first view of / this session: the boot blocks assemble together,
+   *         in order, with the flock
+   *   skip  any other view: the same blocks build one by one like the rest
+   *   done  the boot has run
+   */
+  /*
+   * During the boot the covers ARE the entrance, so the boot blocks do not
+   * also rise underneath them (an opaque cover rising over a card would show
+   * as a moving rectangle before the frames are even drawn).
+   */
+  /*
+   * "done" as well as "play": when the boot ends the attribute flips to done,
+   * and if the rise came back then, every block the covers had just revealed
+   * would blank out and rise a second time. (Boot switches done to skip on a
+   * later remount, which is where the plain rise belongs.)
+   */
+  html[data-boot="play"] [data-build-boot].animate-rise,
+  html[data-boot="play"] [data-build-boot] .animate-rise,
+  html[data-boot="done"] [data-build-boot].animate-rise,
+  html[data-boot="done"] [data-build-boot] .animate-rise {
+    animation: none;
+  }
+
+  /* During the boot the giant word's letters wait for their own wipe. */
+  html[data-boot="play"][data-build-ready]
+    [data-build-boot]:not([data-build-state="resolve"]):not(
+      [data-build-state="done"]
+    )
+    .text-mega
+    .rise-w
+    > span {
+    animation-play-state: paused;
+  }
+
+  /*
+   * ParallaxMedia. Motion writes a unitless --py (pixels at phone scale);
+   * --parallax-k scales it up from 640px, mirroring scrollFx.parallaxDesktop
+   * in lib/motion-config.ts, without the component ever branching on width.
+   */
+  [data-parallax] {
+    transform: translate3d(0, calc(var(--py, 0) * var(--parallax-k, 1) * 1px), 0)
+      scale(1.08);
+  }
+  @media (min-width: 640px) {
+    [data-parallax] {
+      --parallax-k: 1.5714;
+    }
+  }
+
+  /* Velocity marquee: a track twice the content, translated by Motion. */
+  [data-marquee] {
+    overflow: hidden;
+  }
+  [data-marquee-track] {
+    display: flex;
+    width: max-content;
+  }
+
+  /* Magnetic controls: the icon leans half as far again as its control. */
+  [data-magnetic] [data-icon] {
+    translate: calc(var(--mx, 0px) * 0.5) calc(var(--my, 0px) * 0.5);
   }
 
   /* The pulse on a "Present" timeline node. Real semantic state, so it earns
@@ -605,7 +1001,7 @@
   /* Physical press. Applied to every control, so the whole UI feels the same
      under the finger. */
   .press {
-    transition: transform 0.12s cubic-bezier(0.32, 0.72, 0, 1);
+    transition: transform var(--dur-1) var(--ease-out);
   }
   .press:active {
     transform: scale(0.975);
@@ -666,6 +1062,39 @@
     display: none !important;
   }
 
+  /* No covers, no canvas: content is simply there from the first frame. */
+  [data-build-cover],
+  [data-build-stage] {
+    display: none !important;
+  }
+
+  /* The marquee becomes the plain list it is underneath. */
+  [data-marquee-track] {
+    transform: none !important;
+    flex-wrap: wrap;
+    width: auto;
+  }
+  [data-marquee-copy] {
+    display: none !important;
+  }
+
+  [data-magnetic],
+  [data-tilt] {
+    transform: none !important;
+  }
+
+  [data-parallax] {
+    transform: scale(1.08) !important;
+  }
+
+  /* The giant hero word stays where it was drawn. */
+  [data-depth] {
+    transform: none !important;
+  }
+  [data-magnetic] [data-icon] {
+    translate: none !important;
+  }
+
   *,
   *::before,
   *::after {
@@ -683,5 +1112,29 @@
      */
     animation-delay: 0s !important;
     transition-delay: 0s !important;
+  }
+}
+
+/* Print is content only: no covers, no canvas, no half-finished frames. */
+@media print {
+  [data-build-cover],
+  [data-build-stage] {
+    display: none !important;
+  }
+}
+
+/*
+ * Forced colours (Windows contrast themes). The system palette cannot express
+ * a stroke-only word: the transparent fill is forced to the text colour and
+ * the giant outlined word becomes a solid block competing with the real
+ * heading. Both outlined words and the cursor canvas are decoration, so they
+ * simply go. The covers stay correct on their own: forced Canvas is still an
+ * opaque cover, and the engine still lifts them.
+ */
+@media (forced-colors: active) {
+  .text-mega,
+  .text-mark,
+  [data-build-stage] {
+    display: none !important;
   }
 }
