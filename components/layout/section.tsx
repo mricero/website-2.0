@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils"
+import { Build } from "@/components/motion/build/build"
 import { Reveal } from "@/components/motion/reveal"
 
 /**
@@ -55,24 +56,42 @@ export function Section({
   children,
   ...props
 }: SectionProps) {
+  const header = heading && (
+    <>
+      {eyebrow && <p className="label-mono mb-4">{eyebrow}</p>}
+      <h2
+        id={id ? `${id}-heading` : undefined}
+        className="text-section-title max-w-3xl"
+      >
+        {heading}
+      </h2>
+      {lede && (
+        <p className="mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+          {lede}
+        </p>
+      )}
+    </>
+  )
+
+  /*
+   * A section with an id builds its header: a cursor arrives, draws a frame
+   * tagged with the id, and the cover wipes off the heading. The id is the
+   * tag because it already names the section and never contains a dash
+   * here. Without an id there is nothing honest to tag it with, so it keeps
+   * the plain reveal.
+   */
   const body = (
     <>
-      {heading && (
-        <Reveal as="header" className="mb-12 sm:mb-16">
-          {eyebrow && <p className="label-mono mb-4">{eyebrow}</p>}
-          <h2
-            id={id ? `${id}-heading` : undefined}
-            className="text-section-title max-w-3xl"
-          >
-            {heading}
-          </h2>
-          {lede && (
-            <p className="mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-              {lede}
-            </p>
-          )}
-        </Reveal>
-      )}
+      {header &&
+        (id ? (
+          <Build as="header" label={id} className="mb-12 sm:mb-16">
+            {header}
+          </Build>
+        ) : (
+          <Reveal as="header" className="mb-12 sm:mb-16">
+            {header}
+          </Reveal>
+        ))}
       {children}
     </>
   )

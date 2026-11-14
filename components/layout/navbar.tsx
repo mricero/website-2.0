@@ -7,8 +7,10 @@ import { MenuIcon } from "lucide-react"
 import { motion, useMotionValueEvent, useScroll, useSpring } from "motion/react"
 
 import { navItems, siteConfig } from "@/data/site-config"
+import { spring } from "@/lib/motion-config"
 import { cn } from "@/lib/utils"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
+import { Build } from "@/components/motion/build/build"
 import { Button } from "@/components/ui/button"
 import {
   Sheet,
@@ -52,11 +54,7 @@ export function Navbar() {
     setHidden(latest > previous && latest > 140)
   })
 
-  const progress = useSpring(scrollYProgress, {
-    stiffness: 140,
-    damping: 30,
-    restDelta: 0.001,
-  })
+  const progress = useSpring(scrollYProgress, spring.scroll)
 
   /*
    * A route change while the bar is hidden would leave the new page with no
@@ -79,7 +77,10 @@ export function Navbar() {
     <motion.header
       variants={{ visible: { y: 0 }, hidden: { y: "-100%" } }}
       animate={hidden ? "hidden" : "visible"}
-      transition={{ duration: 0.3, ease: "easeInOut" }}
+      // A spring, not a tween: a reader who reverses mid-hide sends the bar
+      // back from where it is with the speed it already has, instead of a
+      // fresh eased tween that stalls to zero velocity and restarts.
+      transition={{ type: "spring", ...spring.ui }}
       // z-index comes from the scale declared in globals.css rather than being
       // invented here; --z-nav sits below the overlay and the grain layers.
       style={{ zIndex: "var(--z-nav)" }}
@@ -91,20 +92,33 @@ export function Navbar() {
           aria-label="Primary"
           className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-6"
         >
-          <Link
-            href="/"
-            aria-label={`${siteConfig.name}, home`}
-            className="font-mono text-sm font-medium tracking-tight transition-colors hover:text-primary"
-          >
-            {siteConfig.initials}
-            <span className="text-primary">.</span>
-          </Link>
+          {/*
+            The chrome builds too: part of the home intro (orders 20 to 27, so
+            it lands after the hero) and built on arrival everywhere else. The
+            wrappers are inline-flex so the row's alignment is unchanged.
+          */}
+          <Build as="span" boot order={20} label="logo" className="inline-flex">
+            <Link
+              href="/"
+              aria-label={`${siteConfig.name}, home`}
+              className="font-mono text-sm font-medium tracking-tight transition-colors hover:text-primary"
+            >
+              {siteConfig.initials}
+              <span className="text-primary">.</span>
+            </Link>
+          </Build>
 
           <ul className="hidden items-center gap-1 md:flex">
-            {navItems.map((item) => {
+            {navItems.map((item, i) => {
               const active = isActive(pathname, item.href)
               return (
-                <li key={item.href}>
+                <Build
+                  as="li"
+                  key={item.href}
+                  boot
+                  order={21 + i}
+                  label={item.label.toLowerCase()}
+                >
                   <Link
                     href={item.href}
                     aria-current={active ? "page" : undefined}
@@ -126,31 +140,43 @@ export function Navbar() {
                         layoutId="nav-active"
                         aria-hidden
                         className="absolute inset-x-3 -bottom-px h-px bg-primary"
-                        transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                        transition={{ type: "spring", ...spring.ui }}
                       />
                     )}
                   </Link>
-                </li>
+                </Build>
               )
             })}
           </ul>
 
           <div className="flex items-center gap-1">
-            <ThemeToggle />
+            <Build as="span" boot order={26} label="theme" className="inline-flex">
+              <ThemeToggle />
+            </Build>
 
             <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-              <SheetTrigger
-                render={
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="md:hidden"
-                    aria-label="Open navigation menu"
-                  />
-                }
+              {/* md:hidden lives on the wrapper so no empty block shows on
+                  desktop. The sheet's content is not built: it remounts on
+                  every open. */}
+              <Build
+                as="span"
+                boot
+                order={27}
+                label="menu"
+                className="inline-flex md:hidden"
               >
-                <MenuIcon />
-              </SheetTrigger>
+                <SheetTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Open navigation menu"
+                    />
+                  }
+                >
+                  <MenuIcon />
+                </SheetTrigger>
+              </Build>
               <SheetContent side="right" className="w-[17rem]">
                 <SheetHeader>
                   <SheetTitle className="font-mono text-sm">Navigation</SheetTitle>

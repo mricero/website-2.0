@@ -7,8 +7,14 @@ import { skillCategories } from "@/data/skills"
 import { focusAreas, siteConfig } from "@/data/site-config"
 import { cn } from "@/lib/utils"
 import { Section } from "@/components/layout/section"
+import { Build } from "@/components/motion/build/build"
+import { Magnetic } from "@/components/motion/magnetic"
 import { Reveal } from "@/components/motion/reveal"
-import { ScrollWrite, StickyStack } from "@/components/motion/scroll-linked"
+import {
+  ScrollWrite,
+  StickyStack,
+  VelocityMarquee,
+} from "@/components/motion/scroll-linked"
 import { Hero } from "@/components/home/hero"
 import { ProjectCard } from "@/components/projects/project-card"
 import { buttonVariants } from "@/components/ui/button"
@@ -43,7 +49,7 @@ function MoreLink({ href, children }: { href: string; children: string }) {
       href={href}
       className="group inline-flex items-center gap-1.5 font-mono text-xs text-muted-foreground transition-colors hover:text-primary"
     >
-      {children}
+      <span className="link-draw">{children}</span>
       <ArrowRightIcon
         className="size-3 transition-transform group-hover:translate-x-0.5"
         aria-hidden
@@ -61,26 +67,24 @@ export default function HomePage() {
 
       {/*
         The statement. One long sentence, metered to the scroll so it gets read
-        rather than skimmed, with the four working areas underneath it as a
-        plain hairline strip.
+        rather than skimmed. It builds first (a frame tagged "statement"), then
+        writes itself in. Under it the four working areas run as a marquee
+        whose speed follows the scroll: the one place on the page where
+        scrolling visibly pushes something sideways.
       */}
       <Section id="statement" divider>
-        <ScrollWrite
-          text={siteConfig.description}
-          className="font-display max-w-4xl text-2xl leading-[1.35] tracking-tight sm:text-3xl sm:leading-[1.3]"
-        />
+        <Build label="statement" className="max-w-4xl">
+          <ScrollWrite
+            text={siteConfig.description}
+            className="font-display text-2xl leading-[1.35] tracking-tight sm:text-3xl sm:leading-[1.3]"
+          />
+        </Build>
 
         <Reveal className="mt-12">
-          <ul className="grid grid-cols-2 gap-px border-t border-border bg-border sm:grid-cols-4">
-            {focusAreas.map((area) => (
-              <li
-                key={area}
-                className="bg-background px-1 py-5 font-mono text-xs text-muted-foreground sm:px-4"
-              >
-                {area}
-              </li>
-            ))}
-          </ul>
+          <VelocityMarquee
+            items={focusAreas}
+            className="border-y border-border py-5"
+          />
         </Reveal>
       </Section>
 
@@ -94,8 +98,13 @@ export default function HomePage() {
         lede="Three of eight. The note on each is the part that was actually hard, not the part that took longest."
       >
         <StickyStack>
+          {/* Each card builds on its own, unlabelled so the tag is its
+              title. The Build sits inside the stack item, so the scrim and
+              the pinning still apply to the whole card. */}
           {lead.map((project) => (
-            <ProjectCard key={project.id} project={project} wide />
+            <Build key={project.id}>
+              <ProjectCard project={project} wide />
+            </Build>
           ))}
         </StickyStack>
 
@@ -128,7 +137,7 @@ export default function HomePage() {
                 <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
                   {category.summary}
                 </p>
-                <p className="mt-3 font-mono text-xs text-muted-foreground/70">
+                <p className="mt-3 font-mono text-xs text-muted-foreground">
                   {category.skills
                     .slice(0, 4)
                     .map((s) => s.name)
@@ -185,7 +194,7 @@ export default function HomePage() {
       </Section>
 
       <Section id="contact" className="pb-24 sm:pb-32">
-        <Reveal className="surface rounded-md p-8 sm:p-14">
+        <Build label="contact" className="surface rounded-md p-8 sm:p-14">
           <h2 className="text-section-title max-w-2xl">
             Looking for an internship in machine learning or robotics.
           </h2>
@@ -194,13 +203,15 @@ export default function HomePage() {
             research collaborations. Email reaches me fastest.
           </p>
           <div className="mt-9 flex flex-wrap items-center gap-3">
-            <Link
-              href="/contact"
-              className={cn(buttonVariants({ size: "lg" }), "press")}
-            >
-              <MailIcon data-icon="inline-start" />
-              Get in touch
-            </Link>
+            <Magnetic>
+              <Link
+                href="/contact"
+                className={cn(buttonVariants({ size: "lg" }), "press")}
+              >
+                <MailIcon data-icon="inline-start" />
+                Get in touch
+              </Link>
+            </Magnetic>
             <a
               href={siteConfig.socials.email}
               className={cn(
@@ -211,7 +222,7 @@ export default function HomePage() {
               {siteConfig.socials.emailAddress}
             </a>
           </div>
-        </Reveal>
+        </Build>
       </Section>
     </>
   )

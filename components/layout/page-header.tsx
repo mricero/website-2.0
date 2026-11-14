@@ -2,6 +2,9 @@ import Link from "next/link"
 import { ChevronRightIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { stagger } from "@/lib/motion-config"
+import { SplitWords } from "@/components/motion/split-words"
+import { Build } from "@/components/motion/build/build"
 
 export interface Crumb {
   label: string
@@ -60,6 +63,11 @@ interface PageHeaderProps {
    */
   eyebrow?: string
   title: string
+  /**
+   * A short outlined word set large behind the title, usually the route's
+   * name. Decorative and aria-hidden: the <h1> is the title.
+   */
+  mark?: string
   lede?: string
   breadcrumbs?: Crumb[]
   /** Buttons or links, rendered under the lede. */
@@ -78,14 +86,17 @@ interface PageHeaderProps {
  * lives here, so there is exactly one per document by construction rather than
  * by discipline.
  *
- * The entrance is the CSS `.animate-rise` keyframe rather than a scroll
- * reveal. This block is always above the fold and holds the LCP element; an
- * intersection-driven fade would leave the title at opacity:0 in the served
- * HTML until JavaScript ran.
+ * The masthead builds piece by piece like the rest of the site: path, eyebrow,
+ * mark, title, summary, actions and facts are each their own Build. That is
+ * safe above the fold where a scroll fade is not, because a build is a cover
+ * over already-painted, server-rendered content rather than an opacity gate:
+ * the <h1> (the LCP element) is painted from the first frame, and a CSS
+ * failsafe removes the covers if scripts never run.
  */
 export function PageHeader({
   eyebrow,
   title,
+  mark,
   lede,
   breadcrumbs,
   actions,
@@ -106,51 +117,76 @@ export function PageHeader({
         className="header-wash pointer-events-none absolute inset-x-0 top-0 -z-10 h-96"
       />
 
-      <div className="mx-auto w-full max-w-6xl px-6 pt-24 pb-12 sm:pb-16">
+      <div className="relative mx-auto w-full max-w-6xl px-6 pt-24 pb-12 sm:pb-16">
+        {mark && (
+          // The Build is the positioned element itself: its utilities
+          // (absolute, hidden) beat the base-layer [data-build] rule.
+          <Build
+            as="span"
+            label="mark"
+            aria-hidden
+            className="text-mark pointer-events-none absolute top-20 right-6 -z-10 hidden sm:block"
+          >
+            {mark}
+          </Build>
+        )}
+
         {breadcrumbs && (
-          <div className="animate-rise mb-7">
+          <Build label="path" className="mb-7">
             <Breadcrumbs items={breadcrumbs} />
-          </div>
+          </Build>
         )}
 
         {eyebrow && (
-          <p
-            className="animate-rise label-mono"
-            style={{ animationDelay: "0.06s" }}
-          >
+          <Build as="p" label="eyebrow" className="label-mono">
             {eyebrow}
-          </p>
+          </Build>
         )}
 
-        <h1
-          className={cn("animate-rise text-page-title", eyebrow && "mt-4")}
-          style={{ animationDelay: "0.12s" }}
+        {/*
+          The title sits in a solid slab of the accent and rises word by word
+          out of its own line. The split is server-side (SplitWords), so the
+          text content of the <h1> is exactly the title and it is painted from
+          the first frame; only the words' transforms animate. The Build wraps
+          the <h1> rather than replacing it, so the heading keeps its tag.
+        */}
+        <Build
+          label="title"
+          className={cn("max-w-4xl", eyebrow && "mt-4")}
+          // The slab's box-decoration padding paints past the line box; the
+          // cover reaches it so nothing peeks out mid-build.
+          style={{ "--cover-bleed": "10px" } as React.CSSProperties}
         >
-          {title}
-        </h1>
+          <h1 className="text-page-title max-w-4xl">
+            <span className="slab">
+              <SplitWords text={title} delay={stagger.titleStart} />
+            </span>
+          </h1>
+        </Build>
 
         {lede && (
-          <p
-            className="animate-rise mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg"
-            style={{ animationDelay: "0.18s" }}
+          <Build
+            as="p"
+            label="summary"
+            className="mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg"
           >
             {lede}
-          </p>
+          </Build>
         )}
 
         {actions && (
-          <div
-            className="animate-rise mt-8 flex flex-wrap items-center gap-3"
-            style={{ animationDelay: "0.24s" }}
+          <Build
+            label="actions"
+            className="mt-8 flex flex-wrap items-center gap-3"
           >
             {actions}
-          </div>
+          </Build>
         )}
 
         {meta && (
-          <div className="animate-rise mt-8" style={{ animationDelay: "0.3s" }}>
+          <Build label="facts" className="mt-8">
             {meta}
-          </div>
+          </Build>
         )}
 
         {children}
