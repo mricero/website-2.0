@@ -9,6 +9,7 @@ import {
 
 import type { Achievement, Course, TimelineEntry } from "@/types"
 import { Reveal } from "@/components/motion/reveal"
+import { Build } from "@/components/motion/build/build"
 import { Timeline } from "@/components/career/timeline"
 import {
   Tabs,
@@ -108,25 +109,35 @@ export function CareerTabs({
 }: CareerTabsProps) {
   return (
     <Tabs defaultValue="experience">
-      <TabsList>
-        <TabsIndicator />
-        <TabsTab value="experience">
-          <BriefcaseIcon aria-hidden />
-          Internships
-        </TabsTab>
-        <TabsTab value="leadership">
-          <UsersIcon aria-hidden />
-          Positions
-        </TabsTab>
-        <TabsTab value="education">
-          <GraduationCapIcon aria-hidden />
-          Education
-        </TabsTab>
-        <TabsTab value="achievements">
-          <AwardIcon aria-hidden />
-          Results
-        </TabsTab>
-      </TabsList>
+      {/*
+        The tab bar builds as one block. The wrapper sits outside the
+        tablist, so the list's arrow-key navigation and its children are
+        untouched, and the indicator still measures against the TabsList,
+        which stays its positioned ancestor. sm:w-fit matches the list's own
+        width, so the frame is drawn round the bar rather than the full row.
+        The panels and timeline entries below are not part of the build.
+      */}
+      <Build label="timeline" className="max-w-full sm:w-fit">
+        <TabsList>
+          <TabsIndicator />
+          <TabsTab value="experience">
+            <BriefcaseIcon aria-hidden />
+            Internships
+          </TabsTab>
+          <TabsTab value="leadership">
+            <UsersIcon aria-hidden />
+            Positions
+          </TabsTab>
+          <TabsTab value="education">
+            <GraduationCapIcon aria-hidden />
+            Education
+          </TabsTab>
+          <TabsTab value="achievements">
+            <AwardIcon aria-hidden />
+            Results
+          </TabsTab>
+        </TabsList>
+      </Build>
 
       {/*
         Each panel renders its own <Timeline>, so each gets its own ScrollSpine

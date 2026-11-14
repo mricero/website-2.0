@@ -45,7 +45,7 @@ export function ProjectGallery({
             className={cn(
               "animate-rise w-full object-contain",
               current.treatment === "chart" &&
-                "bg-white dark:invert dark:hue-rotate-180"
+                "bg-card dark:bg-white dark:invert dark:hue-rotate-180"
             )}
           />
         </div>
@@ -85,7 +85,7 @@ export function ProjectGallery({
                     "size-full object-cover object-top transition-opacity",
                     isActive ? "opacity-100" : "opacity-60 group-hover:opacity-90",
                     item.treatment === "chart" &&
-                      "bg-white dark:invert dark:hue-rotate-180"
+                      "bg-card dark:bg-white dark:invert dark:hue-rotate-180"
                   )}
                 />
                 {/* The visible thumbnail is decorative; this is its real name. */}

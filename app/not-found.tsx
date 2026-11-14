@@ -21,6 +21,7 @@ export default function NotFound() {
       <PageHeader
         eyebrow="404"
         title="This page does not exist"
+        mark="404"
         lede="The link is wrong, or something moved. Both are fixable. Here is everything that does exist."
         actions={
           <Link href="/" className={cn(buttonVariants({ size: "lg" }))}>

@@ -5,6 +5,7 @@ import { ArrowRightIcon } from "lucide-react"
 import type { Project } from "@/types"
 import { assetPath, cn } from "@/lib/utils"
 import { GitHubIcon } from "@/components/icons"
+import { Tilt } from "@/components/motion/magnetic"
 import { ParallaxMedia } from "@/components/motion/scroll-linked"
 import { Badge } from "@/components/ui/badge"
 
@@ -28,26 +29,35 @@ function CardMedia({
   if (project.image) {
     return (
       <ParallaxMedia className="size-full" amount={24}>
-        <Image
-          src={assetPath(project.image)}
-          alt={project.imageAlt ?? ""}
-          width={1280}
-          height={720}
-          sizes="(min-width: 1024px) 50vw, 100vw"
-          /*
-           * The top cards are above the fold, and one of their images is the
-           * LCP element on /projects. Lazy-loading the LCP image defers the
-           * request until layout has run, which is the single most common way
-           * a card grid loses a second of LCP for no reason.
-           */
-          priority={priority}
-          loading={priority ? "eager" : "lazy"}
-          className={cn(
-            "size-full object-cover object-top transition-transform duration-700 group-hover:scale-[1.03]",
-            project.imageTreatment === "chart" &&
-              "bg-white dark:invert dark:hue-rotate-180"
-          )}
-        />
+        {/*
+          Shifts against the card's tilt (--tilt-x and --tilt-y, written by
+          Tilt), so the picture reads as sitting behind the glass. On the
+          independent `translate` property, inside the parallax layer, so it
+          composes with that layer's transform instead of replacing it, and
+          with no transition of its own: the spring already smooths it.
+        */}
+        <div className="size-full [translate:var(--tilt-x,0px)_var(--tilt-y,0px)]">
+          <Image
+            src={assetPath(project.image)}
+            alt={project.imageAlt ?? ""}
+            width={1280}
+            height={720}
+            sizes="(min-width: 1024px) 50vw, 100vw"
+            /*
+             * The top cards are above the fold, and one of their images is the
+             * LCP element on /projects. Lazy-loading the LCP image defers the
+             * request until layout has run, which is the single most common way
+             * a card grid loses a second of LCP for no reason.
+             */
+            priority={priority}
+            loading={priority ? "eager" : "lazy"}
+            className={cn(
+              "size-full object-cover object-top transition-transform duration-700 group-hover:scale-[1.03]",
+              project.imageTreatment === "chart" &&
+                "bg-card dark:bg-white dark:invert dark:hue-rotate-180"
+            )}
+          />
+        </div>
       </ParallaxMedia>
     )
   }
@@ -119,121 +129,129 @@ export function ProjectCard({
   const showMedia = media && (project.image ? true : !wide)
   const split = wide && showMedia
 
+  /*
+   * Tilt is the outer element, and the client boundary, so this stays a server
+   * component. The article keeps its own hover lift from .surface-hover; with
+   * the tilt on a separate element the two transforms compose rather than
+   * overwrite each other. Layout classes from the caller go on Tilt, the
+   * element that actually sits in the grid.
+   */
   return (
-    <article
-      className={cn(
-        "surface surface-hover group relative flex flex-col overflow-hidden rounded-md",
-        "focus-within:border-primary/50",
-        split && "lg:flex-row",
-        className
-      )}
-    >
-      {showMedia && (
-        <div
-          className={cn(
-            "relative aspect-[16/10] w-full overflow-hidden border-b border-border",
-            // aspect-auto hands height control to the flex row, so the panel
-            // matches the text column rather than dictating the card's size.
-            split && "lg:aspect-auto lg:w-[44%] lg:border-r lg:border-b-0"
-          )}
-        >
-          <CardMedia project={project} priority={priority} />
-        </div>
-      )}
-
-      <div
+    <Tilt className={cn("flex", className)}>
+      <article
         className={cn(
-          "flex flex-1 flex-col p-6 sm:p-8",
-          split && "lg:min-w-0 lg:justify-center",
-          // Without the media column the text has the whole card, so it needs
-          // its own reading measure rather than running to 1100px.
-          wide && !split && "lg:p-10"
+          "surface surface-hover group relative flex h-full w-full flex-col overflow-hidden rounded-md",
+          "focus-within:border-primary/50",
+          split && "lg:flex-row"
         )}
       >
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <Badge variant="outline" className="font-mono">
-            {project.category}
-          </Badge>
-          {project.period && (
-            <span className="font-mono text-xs text-muted-foreground tabular-nums">
-              {project.period}
-            </span>
-          )}
-          {/* From the CV. Worth stating: "project lead" on four of these is a
-              different claim from "I have eight repositories". */}
-          {project.role && (
-            <span className="font-mono text-xs text-muted-foreground/70">
-              {project.role}
-            </span>
-          )}
-        </div>
-
-        <h3 className="font-display mt-5 text-xl font-semibold tracking-tight sm:text-2xl">
-          <Link
-            href={href}
-            // The overlay makes the whole card clickable while keeping a single
-            // real link in the accessibility tree.
-            className="after:absolute after:inset-0 after:content-[''] hover:text-primary focus-visible:text-primary"
+        {showMedia && (
+          <div
+            className={cn(
+              "relative aspect-[16/10] w-full overflow-hidden border-b border-border",
+              // aspect-auto hands height control to the flex row, so the panel
+              // matches the text column rather than dictating the card's size.
+              split && "lg:aspect-auto lg:w-[44%] lg:border-r lg:border-b-0"
+            )}
           >
-            {project.title}
-          </Link>
-        </h3>
-
-        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          {project.shortDescription}
-        </p>
-
-        {project.highlight && (
-          <p className="mt-5 max-w-2xl border-l-2 border-primary/50 pl-4 text-sm leading-relaxed text-foreground/75">
-            {project.highlight}
-          </p>
+            <CardMedia project={project} priority={priority} />
+          </div>
         )}
 
-        <ul className="mt-6 flex flex-wrap gap-1.5">
-          {visibleTech.map((tech) => (
-            <li key={tech}>
-              <Badge variant="secondary" className="font-mono">
-                {tech}
-              </Badge>
-            </li>
-          ))}
-          {overflow > 0 && (
-            <li>
-              <Badge variant="ghost" className="font-mono text-muted-foreground">
-                +{overflow}
-              </Badge>
-            </li>
+        <div
+          className={cn(
+            "flex flex-1 flex-col p-6 sm:p-8",
+            split && "lg:min-w-0 lg:justify-center",
+            // Without the media column the text has the whole card, so it needs
+            // its own reading measure rather than running to 1100px.
+            wide && !split && "lg:p-10"
           )}
-        </ul>
+        >
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <Badge variant="outline" className="font-mono">
+              {project.category}
+            </Badge>
+            {project.period && (
+              <span className="font-mono text-xs text-muted-foreground tabular-nums">
+                {project.period}
+              </span>
+            )}
+            {/* From the CV. Worth stating: "project lead" on four of these is a
+                different claim from "I have eight repositories". */}
+            {project.role && (
+              <span className="font-mono text-xs text-muted-foreground">
+                {project.role}
+              </span>
+            )}
+          </div>
 
-        <div className="mt-auto flex items-center justify-between gap-4 pt-8 text-xs">
-          <span className="inline-flex items-center gap-1.5 font-mono text-muted-foreground transition-colors group-hover:text-primary">
-            Read case study
-            <ArrowRightIcon
-              className="size-3.5 transition-transform group-hover:translate-x-0.5"
-              aria-hidden
-            />
-          </span>
-
-          {project.links.github && (
-            /*
-             * Sits above the card overlay (`relative` plus z-10) so it stays a
-             * separate, clickable destination rather than being swallowed by
-             * the pseudo-element covering the card.
-             */
-            <a
-              href={project.links.github}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="relative z-10 inline-flex items-center gap-1.5 font-mono text-muted-foreground transition-colors hover:text-foreground"
+          <h3 className="font-display mt-5 text-xl font-semibold tracking-tight sm:text-2xl">
+            <Link
+              href={href}
+              // The overlay makes the whole card clickable while keeping a single
+              // real link in the accessibility tree.
+              className="after:absolute after:inset-0 after:content-[''] hover:text-primary focus-visible:text-primary"
             >
-              <GitHubIcon className="size-3.5" />
-              <span className="sr-only">{project.title} source on GitHub</span>
-              <span aria-hidden>Source</span>
-            </a>
+              {project.title}
+            </Link>
+          </h3>
+
+          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            {project.shortDescription}
+          </p>
+
+          {project.highlight && (
+            <p className="mt-5 max-w-2xl border-l-2 border-primary/50 pl-4 text-sm leading-relaxed text-foreground/75">
+              {project.highlight}
+            </p>
           )}
+
+          <ul className="mt-6 flex flex-wrap gap-1.5">
+            {visibleTech.map((tech) => (
+              <li key={tech}>
+                <Badge variant="secondary" className="font-mono">
+                  {tech}
+                </Badge>
+              </li>
+            ))}
+            {overflow > 0 && (
+              <li>
+                <Badge variant="ghost" className="font-mono text-muted-foreground">
+                  +{overflow}
+                </Badge>
+              </li>
+            )}
+          </ul>
+
+          <div className="mt-auto flex items-center justify-between gap-4 pt-8 text-xs">
+            <span className="inline-flex items-center gap-1.5 font-mono text-muted-foreground transition-colors group-hover:text-primary">
+              Read case study
+              <ArrowRightIcon
+                className="size-3.5 transition-transform group-hover:translate-x-0.5"
+                aria-hidden
+              />
+            </span>
+
+            {project.links.github && (
+              /*
+               * Sits above the card overlay (`relative` plus z-10) so it stays a
+               * separate, clickable destination rather than being swallowed by
+               * the pseudo-element covering the card.
+               */
+              <a
+                href={project.links.github}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="relative z-10 inline-flex items-center gap-1.5 font-mono text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <GitHubIcon className="size-3.5" />
+                <span className="sr-only">{project.title} source on GitHub</span>
+                <span aria-hidden>Source</span>
+              </a>
+            )}
+          </div>
         </div>
-      </div>
-    </article>
+      </article>
+    </Tilt>
   )
 }

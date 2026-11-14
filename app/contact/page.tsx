@@ -8,6 +8,8 @@ import { GitHubIcon, LinkedInIcon } from "@/components/icons"
 import { Container } from "@/components/layout/section"
 import { PageHeader } from "@/components/layout/page-header"
 import { Reveal } from "@/components/motion/reveal"
+import { Build } from "@/components/motion/build/build"
+import { Magnetic } from "@/components/motion/magnetic"
 import { ContactForm } from "@/components/contact/contact-form"
 import { CopyEmail } from "@/components/contact/copy-email"
 import { buttonVariants } from "@/components/ui/button"
@@ -51,16 +53,23 @@ export default function ContactPage() {
     <>
       <PageHeader
         title="Get in touch"
+        mark="Contact"
         lede="Open to internships and research collaborations in machine learning, retrieval systems and robotics, and happy to talk about any of the projects on this site."
         actions={
           <>
-            <a
-              href={siteConfig.socials.email}
-              className={cn(buttonVariants({ size: "lg" }), "press")}
-            >
-              <MailIcon data-icon="inline-start" />
-              {siteConfig.socials.emailAddress}
-            </a>
+            {/*
+              The page's one primary action, so the one control that leans
+              toward the pointer. The copy button beside it stays still.
+            */}
+            <Magnetic>
+              <a
+                href={siteConfig.socials.email}
+                className={cn(buttonVariants({ size: "lg" }), "press")}
+              >
+                <MailIcon data-icon="inline-start" />
+                {siteConfig.socials.emailAddress}
+              </a>
+            </Magnetic>
             <CopyEmail email={siteConfig.socials.emailAddress} />
           </>
         }
@@ -73,8 +82,12 @@ export default function ContactPage() {
               Not id="message" — the textarea inside the form already owns that
               id, and a duplicate breaks both `for` and `aria-labelledby`
               resolution, which is how a label silently stops being a label.
+
+              A Build rather than a Reveal: the form panel is one of the two
+              blocks on this page big enough to be assembled. Its field rows
+              stay plain, since small repeated items never build.
             */}
-            <Reveal as="section" aria-labelledby="send-heading">
+            <Build as="section" label="message" aria-labelledby="send-heading">
               <h2
                 id="send-heading"
                 className="label-mono"
@@ -84,10 +97,14 @@ export default function ContactPage() {
               <div className="mt-6">
                 <ContactForm />
               </div>
-            </Reveal>
+            </Build>
 
             <aside className="space-y-8">
-              <Reveal from="none">
+              {/*
+                The direct-contact panel is the second build. Where and
+                Languages below are a few lines each and keep the plain fade.
+              */}
+              <Build label="elsewhere">
                 <h2 className="label-mono">
                   Elsewhere
                 </h2>
@@ -128,7 +145,7 @@ export default function ContactPage() {
                     )
                   )}
                 </ul>
-              </Reveal>
+              </Build>
 
               <Reveal from="none">
                 <h2 className="label-mono">Where</h2>

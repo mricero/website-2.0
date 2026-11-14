@@ -5,6 +5,7 @@ import { SendIcon } from "lucide-react"
 
 import { siteConfig } from "@/data/site-config"
 import { cn } from "@/lib/utils"
+import { Magnetic } from "@/components/motion/magnetic"
 
 /**
  * A contact form on a statically exported site has no server to POST to, so it
@@ -278,14 +279,18 @@ export function ContactForm() {
       </Field>
 
       <div className="flex flex-wrap items-center gap-4">
-        <button
-          type="submit"
-          disabled={busy}
-          className="press inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85 focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-60"
-        >
-          <SendIcon className="size-4" aria-hidden />
-          {busy ? "Sending" : canSend ? "Send message" : "Compose email"}
-        </button>
+        {/* The form's one action, so it is the control that leans toward the
+            pointer. The icon leans further (data-icon, see globals.css). */}
+        <Magnetic>
+          <button
+            type="submit"
+            disabled={busy}
+            className="press inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85 focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-60"
+          >
+            <SendIcon className="size-4" data-icon="" aria-hidden />
+            {busy ? "Sending" : canSend ? "Send message" : "Compose email"}
+          </button>
+        </Magnetic>
 
         {/*
           One live region for every outcome, so a screen reader hears the

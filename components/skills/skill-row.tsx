@@ -5,6 +5,7 @@ import Link from "next/link"
 import type { Skill } from "@/types"
 import { bandFor, bandStyles } from "@/data/skills"
 import { cn } from "@/lib/utils"
+import { BuildCover, useBuild } from "@/components/motion/build/build"
 import { useRevealOnce } from "@/components/motion/reveal"
 
 interface SkillRowProps {
@@ -24,6 +25,9 @@ export function SkillRow({
   index,
 }: SkillRowProps) {
   const { ref, revealed } = useRevealOnce<HTMLLIElement>()
+  // The row is also a build on the same element: the cover wipes off over the
+  // bar fill, which still plays underneath on its own reveal.
+  useBuild(ref)
   const band = bandFor(skill)
   const style = bandStyles[band]
 
@@ -50,6 +54,7 @@ export function SkillRow({
   return (
     <li
       ref={ref}
+      data-build=""
       data-reveal="up"
       data-revealed={revealed ? "" : undefined}
       style={{ "--reveal-i": index } as React.CSSProperties}
@@ -95,8 +100,8 @@ export function SkillRow({
       </p>
 
       {evidence.length > 0 && (
-        <p className="mt-3 font-mono text-xs text-muted-foreground/80">
-          <span className="text-muted-foreground/60">Seen in</span>{" "}
+        <p className="mt-3 font-mono text-xs text-muted-foreground">
+          <span className="text-muted-foreground">Seen in</span>{" "}
           {evidence.map((item, i) => (
             <span key={item.key}>
               {i > 0 && ", "}
@@ -110,6 +115,8 @@ export function SkillRow({
           ))}
         </p>
       )}
+
+      <BuildCover />
     </li>
   )
 }

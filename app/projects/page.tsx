@@ -21,6 +21,7 @@ export default function ProjectsPage() {
     <>
       <PageHeader
         title="Things I built end to end"
+        mark="Projects"
         lede="Every project here started as a problem I could not buy my way out of. The write-ups lead with the decision that was hard rather than the framework that was used."
         meta={
           <dl className="flex flex-wrap gap-x-8 gap-y-3 font-mono text-xs">

@@ -27,6 +27,7 @@ export default function CareerPage() {
     <>
       <PageHeader
         title="How I got here, in order"
+        mark="Career"
         lede="Two internships, three positions and three qualifications. The rover work and the festival operations both run in parallel with the degree, which is most of why the last two years look busy."
         meta={
           <dl className="flex flex-wrap gap-x-8 gap-y-3 font-mono text-xs">

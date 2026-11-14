@@ -10,6 +10,8 @@ import { GitHubIcon } from "@/components/icons"
 import { Container } from "@/components/layout/section"
 import { PageHeader } from "@/components/layout/page-header"
 import { Reveal } from "@/components/motion/reveal"
+import { Build } from "@/components/motion/build/build"
+import { CountUp } from "@/components/motion/count-up"
 import { ProjectGallery } from "@/components/projects/project-gallery"
 import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
@@ -45,7 +47,13 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   }
 }
 
-/** A titled block inside the case study. Every one of them reveals once. */
+/**
+ * A titled block inside the case study. Every one of them builds once.
+ *
+ * The id keeps its dashes, since it is only an anchor. The build tag is drawn
+ * on the page, and a tag never carries a dash, so it is the same title with
+ * any run of punctuation or space collapsed to a single space.
+ */
 function Block({
   title,
   children,
@@ -56,17 +64,22 @@ function Block({
   className?: string
 }) {
   const id = title.toLowerCase().replace(/[^a-z0-9]+/g, "-")
+  const tag = title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
   return (
-    <Reveal
+    <Build
       as="section"
       aria-labelledby={id}
+      label={tag}
       className={cn("border-t border-border pt-10", className)}
     >
       <h2 id={id} className="font-display text-xl font-semibold tracking-tight">
         {title}
       </h2>
       <div className="mt-6">{children}</div>
-    </Reveal>
+    </Build>
   )
 }
 
@@ -168,9 +181,14 @@ export default async function ProjectPage({ params }: Params) {
       />
 
       <Container className="pb-24 sm:pb-32">
-        {/* The headline figures, straight off the README or the CV. */}
+        {/*
+          The headline figures, straight off the README or the CV. The row
+          builds as one block and each figure counts up once it lands; the
+          served HTML already holds the final value, so nothing here is
+          invented or hidden from a reader without JavaScript.
+        */}
         {detail?.metrics && detail.metrics.length > 0 && (
-          <Reveal>
+          <Build label="metrics">
             <dl className="grid grid-cols-2 gap-px border-y border-border bg-border lg:grid-cols-4">
               {detail.metrics.map((metric) => (
                 <div
@@ -180,7 +198,7 @@ export default async function ProjectPage({ params }: Params) {
                   <dt className="sr-only">{metric.label}</dt>
                   <dd>
                     <span className="font-display block text-2xl font-semibold text-primary tabular-nums">
-                      {metric.value}
+                      <CountUp value={metric.value} />
                     </span>
                     <span className="mt-2 block text-xs leading-snug text-muted-foreground">
                       {metric.label}
@@ -189,7 +207,7 @@ export default async function ProjectPage({ params }: Params) {
                 </div>
               ))}
             </dl>
-          </Reveal>
+          </Build>
         )}
 
         <div
@@ -201,7 +219,12 @@ export default async function ProjectPage({ params }: Params) {
           <div className="min-w-0 space-y-12">
             {detail ? (
               <>
-                <Reveal as="section" aria-labelledby="overview">
+                {/*
+                  Written out rather than through Block: the heading here is
+                  sr-only, but the overview still builds like every titled
+                  block below it.
+                */}
+                <Build as="section" aria-labelledby="overview" label="overview">
                   <h2 id="overview" className="sr-only">
                     Overview
                   </h2>
@@ -215,7 +238,7 @@ export default async function ProjectPage({ params }: Params) {
                       </p>
                     ))}
                   </div>
-                </Reveal>
+                </Build>
 
                 {detail.gallery && detail.gallery.length > 0 && (
                   <Block title="Screens">

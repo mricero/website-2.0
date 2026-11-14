@@ -9,7 +9,7 @@ import {
 
 import type { SkillCategory } from "@/types"
 import { sortSkills } from "@/data/skills"
-import { Reveal } from "@/components/motion/reveal"
+import { Build } from "@/components/motion/build/build"
 import { SkillRow } from "@/components/skills/skill-row"
 
 interface SkillsExplorerProps {
@@ -109,7 +109,18 @@ export function SkillsExplorer({
               aria-labelledby={`skills-${category.id}`}
               className="mb-14 break-inside-avoid last:mb-0"
             >
-              <Reveal className="border-b border-border pb-4">
+              {/*
+                The category header builds; the skill rows under it keep
+                their own staggered reveal, because small repeated items
+                never build. The tag is the title with spaces, never a dash.
+              */}
+              <Build
+                label={category.title
+                  .toLowerCase()
+                  .replace(/[^a-z0-9]+/g, " ")
+                  .trim()}
+                className="border-b border-border pb-4"
+              >
                 <div className="flex items-baseline justify-between gap-4">
                   <h2
                     id={`skills-${category.id}`}
@@ -124,7 +135,7 @@ export function SkillsExplorer({
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                   {category.summary}
                 </p>
-              </Reveal>
+              </Build>
 
               <ul className="divide-y divide-border/70 pt-5">
                 {category.skills.map((skill, i) => (

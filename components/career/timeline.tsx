@@ -2,6 +2,7 @@
 
 import type { TimelineEntry } from "@/types"
 import { cn } from "@/lib/utils"
+import { BuildCover, useBuild } from "@/components/motion/build/build"
 import { useRevealOnce } from "@/components/motion/reveal"
 import { ScrollSpine } from "@/components/motion/scroll-spine"
 import { Badge } from "@/components/ui/badge"
@@ -30,11 +31,15 @@ function TimelineItem({
   index: number
 }) {
   const { ref, revealed } = useRevealOnce<HTMLLIElement>()
+  // The entry is also a build on the same element: the cover wipes off over
+  // the node, branch and card, which still play underneath on their reveal.
+  useBuild(ref)
   const stagger = Math.min(index, 3)
 
   return (
     <li
       ref={ref}
+      data-build=""
       className="relative pl-10 sm:pl-16"
       style={{ "--reveal-i": stagger } as React.CSSProperties}
     >
@@ -132,6 +137,8 @@ function TimelineItem({
           </ul>
         )}
       </div>
+
+      <BuildCover />
     </li>
   )
 }
