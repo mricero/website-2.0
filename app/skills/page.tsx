@@ -35,6 +35,7 @@ export default function SkillsPage() {
     <>
       <PageHeader
         title="What I actually know how to do"
+        mark="Skills"
         lede="Levels here are self-assessed, so they are reported as bands rather than as percentages. What is not self-assessed is the evidence: most rows link to the project or the internship where the skill did real work."
         meta={
           <dl className="flex flex-wrap gap-x-8 gap-y-3 font-mono text-xs">
