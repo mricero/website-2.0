@@ -1,8 +1,17 @@
 "use client"
 
 import * as React from "react"
-import { motion, useScroll, useTransform, type MotionValue } from "motion/react"
+import {
+  motion,
+  useMotionValue,
+  useScroll,
+  useSpring,
+  useTransform,
+  useVelocity,
+  type MotionValue,
+} from "motion/react"
 
+import { scrollFx, sim, spring } from "@/lib/motion-config"
 import { cn } from "@/lib/utils"
 
 /**
@@ -265,6 +274,18 @@ interface ParallaxMediaProps {
  *
  * The child is scaled slightly so the travel never exposes an edge, which
  * means the wrapper has to clip.
+ *
+ * The component writes only a unitless `--py` (pixels at phone scale); the
+ * [data-parallax] rule in globals.css turns it into the translate, multiplies
+ * it by --parallax-k from 640px up, and applies the scale. That keeps the
+ * desktop amplification a media query rather than a width check in render,
+ * and lets the reduced-motion override drop the travel with one rule. Like
+ * `--p` in ScrollWrite it is a fixed-precision string, because Motion appends
+ * "px" to bare numbers on unknown properties and `calc(12px * 1px)` is not a
+ * length.
+ *
+ * Deliberately not sprung: the media is locked to the page, and a lag here
+ * would read as the image sliding loose inside its frame.
  */
 export function ParallaxMedia({
   children,
@@ -278,12 +299,243 @@ export function ParallaxMedia({
     offset: ["start end", "end start"],
   })
 
-  const y = useTransform(scrollYProgress, [0, 1], [amount / 2, -amount / 2])
+  const half = amount / 2
+  const py = useTransform(scrollYProgress, (v) =>
+    (half - amount * Math.min(Math.max(v, 0), 1)).toFixed(2)
+  )
 
   return (
     <div ref={ref} className={cn("overflow-hidden", className)}>
-      <motion.div style={{ y }} className="h-full w-full scale-[1.08]">
+      <motion.div
+        data-parallax
+        style={{ "--py": py } as React.CSSProperties}
+        className="h-full w-full"
+      >
         {children}
+      </motion.div>
+    </div>
+  )
+}
+
+/* ---------------------------------------------------------------------------
+   ScrollDepth
+--------------------------------------------------------------------------- */
+
+interface ScrollDepthProps {
+  children: React.ReactNode
+  className?: string
+}
+
+/**
+ * The giant decorative hero word, sinking back as the first screen scrolls
+ * away: it lifts a share of its own height and swells slightly.
+ *
+ * What it communicates: depth. The word is the backdrop, the masthead copy is
+ * the foreground, and the backdrop moving a little slower and later than the
+ * page is what separates the two planes.
+ *
+ * Progress is page scroll over one viewport height, so the effect completes
+ * as the hero leaves. innerHeight is read inside the transform, at scroll
+ * time, never during render: the server has no window and a resize after
+ * mount should not need a re-render to be honoured.
+ *
+ * Unlike ParallaxMedia this one IS sprung (spring.scroll). The lag is the
+ * point: a background that trails the foreground reads as further away.
+ */
+export function ScrollDepth({ children, className }: ScrollDepthProps) {
+  const { scrollY } = useScroll()
+
+  const raw = useTransform(scrollY, (v) => {
+    const h = typeof window === "undefined" ? 0 : window.innerHeight
+    return h > 0 ? Math.min(Math.max(v / h, 0), 1) : 0
+  })
+  const progress = useSpring(raw, spring.scroll)
+
+  // y as a percentage of the element's own height, so the lift scales with
+  // the word rather than with the viewport.
+  const y = useTransform(
+    progress,
+    (p) => `${(-scrollFx.megaLift * 100 * p).toFixed(3)}%`
+  )
+  const scale = useTransform(progress, (p) => 1 + (scrollFx.megaScale - 1) * p)
+
+  return (
+    <motion.div data-depth style={{ y, scale }} className={className}>
+      {children}
+    </motion.div>
+  )
+}
+
+/* ---------------------------------------------------------------------------
+   VelocityMarquee
+--------------------------------------------------------------------------- */
+
+interface VelocityMarqueeProps {
+  items: readonly string[]
+  className?: string
+  itemClassName?: string
+}
+
+/** Wrap `v` into [min, max). Handles negatives, unlike a bare `%`. */
+function wrap(min: number, max: number, v: number) {
+  const range = max - min
+  return ((((v - min) % range) + range) % range) + min
+}
+
+/**
+ * A strip of labels drifting sideways, which speeds up with scroll velocity
+ * and turns round when the reader scrolls back up.
+ *
+ * What it communicates: momentum. It is the one element that answers how
+ * fast you are moving rather than where you are, so it is used sparingly.
+ *
+ * Mechanics:
+ *  - The list is rendered twice side by side; the track moves left and wraps
+ *    by the width of ONE copy, so the seam is never visible. The copy is
+ *    aria-hidden: assistive tech reads the list once.
+ *  - The width lives in a ref fed by a ResizeObserver, never in state, so a
+ *    font swap or resize re-measures without a render.
+ *  - Speed is the base drift plus smoothed scroll velocity, capped. The
+ *    velocity goes through spring.velocity so a flick eases off instead of
+ *    snapping back to the base drift.
+ *  - Integration uses real frame time (clamped to sim.maxFrame so a tab
+ *    switch cannot leap), so the drift is the same speed at 60Hz and 144Hz.
+ *  - The rAF loop runs only while the strip is on screen and the tab is
+ *    visible. Off screen it costs nothing, not even an idle frame callback.
+ *
+ * Reduced motion: globals.css pins the track (transform none) and hides the
+ * copy, so the strip renders as the plain wrapped list it is underneath. The
+ * effect below also declines to start the loop under that preference, which
+ * is a cost saving, not the mechanism; it reads the media query after mount,
+ * never during render.
+ */
+export function VelocityMarquee({
+  items,
+  className,
+  itemClassName,
+}: VelocityMarqueeProps) {
+  const rootRef = React.useRef<HTMLDivElement>(null)
+  const copyRef = React.useRef<HTMLUListElement>(null)
+  const widthRef = React.useRef(0)
+
+  const x = useMotionValue(0)
+  const { scrollY } = useScroll()
+  const velocity = useVelocity(scrollY)
+  const smoothVelocity = useSpring(velocity, spring.velocity)
+
+  React.useEffect(() => {
+    const root = rootRef.current
+    const copy = copyRef.current
+    if (!root || !copy) return
+
+    // Measure one copy. borderBoxSize keeps the fraction; offsetWidth would
+    // round it and the wrap would jump by that sub-pixel every cycle.
+    const resize = new ResizeObserver(([entry]) => {
+      const box = entry.borderBoxSize?.[0]
+      widthRef.current = box ? box.inlineSize : entry.contentRect.width
+    })
+    resize.observe(copy)
+
+    let frame = 0
+    let last = 0
+    let position = x.get()
+    // Leftwards by default; flips with the last non-zero scroll direction and
+    // keeps it after the scroll stops, so the strip coasts the way it was sent.
+    let direction = 1
+    let inView = false
+
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)")
+
+    const tick = (now: number) => {
+      const dt = last ? Math.min((now - last) / 1000, sim.maxFrame) : 0
+      last = now
+
+      const v = smoothVelocity.get()
+      if (v > 0.5) direction = 1
+      else if (v < -0.5) direction = -1
+
+      const speed = Math.min(
+        scrollFx.marqueeBase + Math.abs(v) * scrollFx.marqueeGain,
+        scrollFx.marqueeMax
+      )
+      position -= direction * speed * dt
+
+      const w = widthRef.current
+      if (w > 0) {
+        position = wrap(-w, 0, position)
+        x.set(position)
+      }
+
+      frame = requestAnimationFrame(tick)
+    }
+
+    const start = () => {
+      if (frame) return
+      // Reset the clock so the first frame after a pause integrates zero time
+      // rather than the whole gap.
+      last = 0
+      frame = requestAnimationFrame(tick)
+    }
+    const stop = () => {
+      if (!frame) return
+      cancelAnimationFrame(frame)
+      frame = 0
+    }
+    const sync = () => {
+      if (inView && !document.hidden && !reduce.matches) start()
+      else stop()
+    }
+
+    const io = new IntersectionObserver(([entry]) => {
+      inView = entry.isIntersecting
+      sync()
+    })
+    io.observe(root)
+
+    document.addEventListener("visibilitychange", sync)
+    reduce.addEventListener("change", sync)
+
+    return () => {
+      stop()
+      io.disconnect()
+      resize.disconnect()
+      document.removeEventListener("visibilitychange", sync)
+      reduce.removeEventListener("change", sync)
+    }
+  }, [x, smoothVelocity])
+
+  const itemClass = cn(
+    // The leading hairline is the separator, the same short rule the mobile
+    // nav uses to mark a row, so the strip reads as one continuous list.
+    "flex shrink-0 items-center gap-4 px-4 font-mono text-xs whitespace-nowrap text-muted-foreground",
+    "before:h-px before:w-3 before:bg-border-strong before:content-['']",
+    itemClassName
+  )
+
+  return (
+    <div ref={rootRef} data-marquee className={className}>
+      <motion.div data-marquee-track style={{ x }}>
+        {/*
+         * Each copy is its own flex row. flex-wrap only matters under reduced
+         * motion, when the track drops to the container width and this first
+         * copy becomes an ordinary wrapping list; with the track at
+         * max-content it never wraps.
+         */}
+        <ul ref={copyRef} className="flex min-w-0 flex-wrap">
+          {items.map((item, i) => (
+            // Static list that never reorders, and labels may repeat.
+            <li key={i} className={itemClass}>
+              {item}
+            </li>
+          ))}
+        </ul>
+        <ul aria-hidden data-marquee-copy className="flex min-w-0 flex-wrap">
+          {items.map((item, i) => (
+            <li key={i} className={itemClass}>
+              {item}
+            </li>
+          ))}
+        </ul>
       </motion.div>
     </div>
   )

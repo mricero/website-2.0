@@ -3,6 +3,7 @@
 import * as React from "react"
 import { motion, useScroll, useSpring, useTransform } from "motion/react"
 
+import { spring } from "@/lib/motion-config"
 import { cn } from "@/lib/utils"
 
 /**
@@ -46,15 +47,15 @@ export function ScrollSpine({
   // The raw value steps with the scroll wheel. A spring turns it into a line
   // that flows, which is the whole difference between this looking designed
   // and looking like a progress bar.
-  const progress = useSpring(scrollYProgress, {
-    stiffness: 90,
-    damping: 26,
-    restDelta: 0.0005,
-  })
+  const progress = useSpring(scrollYProgress, spring.scroll)
 
-  const tipTop = useTransform(
+  // The head rides down on a transform, not on `top`. Animating `top` is a
+  // layout property, so every frame of scroll re-ran layout for the rail.
+  // Instead a full-height layer is translated by a percentage of its OWN
+  // height, which is the rail's height, so 100% lands exactly on the bottom.
+  const tipY = useTransform(
     progress,
-    (v) => `${Math.min(Math.max(v, 0), 1) * 100}%`
+    (v) => `${(Math.min(Math.max(v, 0), 1) * 100).toFixed(3)}%`
   )
   // Fade the glowing head in as it leaves the top and out as it reaches the
   // end, so it never sits parked on the final node.
@@ -62,10 +63,17 @@ export function ScrollSpine({
 
   return (
     <div ref={containerRef} className={cn("relative", className)}>
+      {/*
+       * overflow-y: clip, because the head's layer is as tall as the rail and
+       * translates down by up to its full height. Unclipped, that empty layer
+       * would hang below the timeline and lengthen the page. `clip` rather
+       * than `hidden` so the x axis stays visible for the dot and its glow,
+       * and so no scroll container is created.
+       */}
       <div
         aria-hidden
         className={cn(
-          "pointer-events-none absolute inset-y-0 left-0 w-px",
+          "pointer-events-none absolute inset-y-0 left-0 w-px overflow-y-clip",
           railClassName
         )}
       >
@@ -89,16 +97,23 @@ export function ScrollSpine({
           style={{ scaleY: progress }}
           className="absolute inset-0 origin-top bg-gradient-to-b from-primary/40 via-primary to-primary"
         />
+        {/*
+         * data-spine-tip sits on the moving layer, so the reduced-motion rule
+         * removes the layer and the dot together.
+         */}
         <motion.div
           data-spine-tip
-          style={{
-            top: tipTop,
-            opacity: tipOpacity,
-            boxShadow:
-              "0 0 10px 2px color-mix(in oklch, var(--primary) 55%, transparent)",
-          }}
-          className="absolute left-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary"
-        />
+          style={{ y: tipY, opacity: tipOpacity }}
+          className="absolute inset-0"
+        >
+          <div
+            style={{
+              boxShadow:
+                "0 0 10px 2px color-mix(in oklch, var(--primary) 55%, transparent)",
+            }}
+            className="absolute top-0 left-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary"
+          />
+        </motion.div>
       </div>
 
       {children}
